@@ -1,0 +1,2848 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国古代美食地图 - 只此青绿山水版</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* 朝代筛选条样式 */
+        #dynasty-filter {
+            position: fixed;
+            bottom: 30px;
+            left: 150px;
+            background: rgba(212, 197, 160, 0.95);
+            border: 2px solid #8B7355;
+            border-radius: 8px;
+            padding: 10px 20px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            font-family: "Noto Serif SC", serif;
+        }
+        .filter-title {
+            text-align: center;
+            font-size: 16px;
+            color: #5A4A3A;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+        .filter-btn {
+            padding: 6px 12px;
+            border: 1px solid #8B7355;
+            background: #F5F0E0;
+            color: #5A4A3A;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .filter-btn:hover {
+            background: #E8DCC0;
+        }
+        .filter-btn.active {
+            background: #8B7355;
+            color: #F5F0E0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background: #d4c5a0;
+            overflow: hidden;
+        }
+        #canvas-container { width: 100vw; height: 100vh; }
+        .title-panel {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 100;
+            pointer-events: none;
+        }
+         .title-panel h1 {
+            font-size: 2.8rem;
+            color: #2a3a2a;
+            text-shadow: 2px 2px 8px rgba(212, 197, 160, 0.8);
+            letter-spacing: 0.4em;
+            font-weight: 700;
+        }
+        .title-panel p {
+            font-size: 1rem;
+            color: #5a4a3a;
+            letter-spacing: 0.3em;
+            margin-top: 8px;
+        }
+        .city-popup {
+            position: absolute;
+            background: linear-gradient(135deg, rgba(45, 55, 45, 0.95), rgba(30, 40, 30, 0.98));
+            border: 1px solid rgba(100, 140, 100, 0.4);
+            border-radius: 12px;
+            padding: 24px;
+            min-width: 320px;
+            max-width: 400px;
+            z-index: 1000;
+            display: none;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+        .city-popup.active {
+            display: block;
+            animation: popupIn 0.3s ease-out;
+        }
+        @keyframes popupIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(100, 140, 100, 0.3);
+        }
+         .popup-city-name {
+            font-size: 1.5rem;
+            color: #e8dcc0;
+            font-weight: 600;
+        }
+        .popup-close {
+            background: none;
+            border: none;
+            color: #7a9a7a;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+        .popup-close:hover { color: #e8dcc0; }
+        .food-list { list-style: none; }
+        .food-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(100, 140, 100, 0.15);
+        }
+        .food-item:last-child { border-bottom: none; }
+        .food-icon { font-size: 1.5rem; flex-shrink: 0; }
+         .food-info h4 {
+            color: #8ab06a;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+        .food-info p {
+            color: rgba(232, 220, 192, 0.7);
+            font-size: 0.85rem;
+            line-height: 1.8;
+            white-space: pre-line;
+        }
+        .legend-panel {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            background: rgba(212, 197, 160, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(90, 74, 58, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            z-index: 100;
+        }
+        .legend-title {
+            color: #3a5a4a;
+            font-size: 1rem;
+            margin-bottom: 12px;
+            letter-spacing: 0.2em;
+            font-weight: 600;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            color: rgba(50, 50, 40, 0.9);
+            font-size: 0.85rem;
+        }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .controls-hint {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            background: rgba(212, 197, 160, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            padding: 16px 20px;
+            z-index: 100;
+            color: rgba(50, 50, 40, 0.8);
+            font-size: 0.8rem;
+            line-height: 1.8;
+            border: 1px solid rgba(90, 74, 58, 0.2);
+        }
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #d4c5a0 0%, #c4b590 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            transition: opacity 0.8s ease-out;
+        }
+        .loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .loading-icon {
+            width: 80px;
+            height: 80px;
+            border: 3px solid rgba(42, 90, 70, 0.3);
+            border-top-color: #2a6b5a;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text {
+            margin-top: 24px;
+            color: #2a5a4a;
+            font-size: 1.2rem;
+            letter-spacing: 0.5em;
+        }
+        .loading-progress {
+            margin-top: 16px;
+            width: 200px;
+            height: 4px;
+            background: rgba(42, 90, 70, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .loading-bar {
+            height: 100%;
+            background: #2a6b5a;
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading-screen">
+        <div class="loading-icon"></div>
+        <div class="loading-text">正在绘制山河图</div>
+        <div class="loading-progress">
+            <div id="loading-bar" class="loading-bar"></div>
+        </div>
+    </div>
+
+    <div class="title-panel">
+        <h1>寻味千年 · 古韵食图</h1>
+        <p>二十一城珍馐 · 诗话美食</p>
+    </div>
+
+    <div id="city-popup" class="city-popup">
+        <div class="popup-header">
+            <h3 id="popup-city-name" class="popup-city-name"></h3>
+            <button class="popup-close" onclick="closePopup()">×</button>
+        </div>
+        <ul id="popup-food-list" class="food-list"></ul>
+    </div>
+
+    <div class="legend-panel">
+        <div class="legend-title">古都图例</div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background: #B8956B;"></div>
+            <span>中原古都</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background: #7A8B6E;"></div>
+            <span>江南名城</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background: #5A7A8A;"></div>
+            <span>南方重镇</span>
+        </div>
+    </div>
+
+    <!-- 朝代筛选条 -->
+    <div id="dynasty-filter">
+        <div class="filter-title">朝代筛选</div>
+        <div class="filter-buttons">
+            <button class="filter-btn active" data-dynasty="all">全部</button>
+            <button class="filter-btn" data-dynasty="战国">战国</button>
+            <button class="filter-btn" data-dynasty="西汉">西汉</button>
+            <button class="filter-btn" data-dynasty="唐">唐</button>
+            <button class="filter-btn" data-dynasty="宋">宋</button>
+            <button class="filter-btn" data-dynasty="元">元</button>
+            <button class="filter-btn" data-dynasty="清">清</button>
+        </div>
+    </div>
+    <div class="controls-hint">
+        <div>🖱️ 左键拖拽旋转地图</div>
+        <div>🔍 滚轮缩放视图</div>
+        <div>👆 点击城市查看美食</div>
+        <div>🔄 右键平移视角</div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <style>
+        /* 古风城市标签样式 - 水墨行书效果 */
+        .city-label {
+            position: absolute;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .city-label-content {
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            font-family: 'STXingkai', 'Xingkai SC', 'STXinwei', 'Xinwei', 'KaiTi', 'STKaiti', serif;
+            font-size: 20px;
+            font-weight: 400;
+            /* 统一使用苏州的暖金色 */
+            color: #F0D878;
+            letter-spacing: 10px;
+            /* 多层光晕 - 水墨晕染效果 */
+            text-shadow:
+                /* 内层亮光 */
+                0 0 4px rgba(255, 245, 200, 1),
+                0 0 8px rgba(255, 235, 160, 0.95),
+                /* 中层金色光晕 */
+                0 0 15px rgba(255, 220, 130, 0.85),
+                0 0 25px rgba(255, 210, 110, 0.7),
+                0 0 40px rgba(255, 200, 90, 0.55),
+                /* 外层扩散光 */
+                0 0 60px rgba(255, 190, 70, 0.4),
+                0 0 80px rgba(255, 180, 50, 0.25),
+                /* 水墨阴影 */
+                3px 3px 6px rgba(0, 0, 0, 0.5),
+                1px 1px 2px rgba(0, 0, 0, 0.3);
+            padding: 10px 6px;
+            background: transparent;
+            border: none;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 60px;
+            line-height: 2;
+            /* 轻微倾斜增加书法感 */
+            transform: rotate(-1deg);
+        }
+
+        /* 都城特殊样式 - 更大 */
+        .city-label-content.capital {
+            font-size: 24px;
+            font-weight: 500;
+            letter-spacing: 12px;
+        }
+
+        /* 都城特殊样式 - 更大 */
+        .city-label-content.capital {
+            font-size: 24px;
+            font-weight: 500;
+            letter-spacing: 12px;
+        }
+
+        /* 所有城市统一颜色 - 移除其他颜色定义 */
+        .city-label-content.jiangnan,
+        .city-label-content.south {
+            color: #F0D878;
+        }
+
+        /* 悬浮效果 - 光晕增强 */
+        .city-label:hover .city-label-content {
+            transform: rotate(-1deg) scale(1.1);
+            transition: all 0.3s ease;
+            text-shadow:
+                0 0 6px rgba(255, 250, 220, 1),
+                0 0 12px rgba(255, 245, 190, 0.95),
+                0 0 20px rgba(255, 235, 160, 0.9),
+                0 0 35px rgba(255, 225, 140, 0.8),
+                0 0 55px rgba(255, 215, 120, 0.65),
+                0 0 80px rgba(255, 205, 100, 0.5),
+                0 0 110px rgba(255, 195, 80, 0.35),
+                3px 3px 6px rgba(0, 0, 0, 0.5),
+                1px 1px 2px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        const citiesData = {
+            '中都': {
+                lat: 39.90, lon: 116.40, type: 'ancient',
+                foods: [
+                    { name: '爆羊肉', desc: '朝代：金\n出处：元好问《续夷坚志》\n原文："爆羊肉，以薄切，急火炒之，佐以葱、酱，香脆可口。"\n\n薄切羊肉，大火爆炒，佐葱酱。金代中都（今北京）饮食遗风，代表早期"爆炒"技法雏形。', icon: '🥩' }
+                ]
+            },
+            '蜀郡': {
+                lat: 30.66, lon: 104.06, type: 'south',
+                foods: [
+                    { name: '蒟酱', desc: '朝代：西汉\n出处：司马迁《史记·西南夷列传》\n原文："独蜀出蒟酱，多持窃出市夜郎。"\n\n蒟酱为蜀地特产，以蒌叶、胡椒科植物等发酵制成，味辛香。西汉时已通过贸易流入夜郎，是西南最早的调味品之一。', icon: '🫙' }
+                ]
+            },
+            '江陵': {
+                lat: 30.33, lon: 112.23, type: 'ancient',
+                foods: [
+                    { name: '白鱼', desc: '朝代：唐\n出处：杜甫《送王十五判官扶侍还黔中》\n原文："青青竹笋迎船出，日日江鱼入馔来。"\n\n江陵一带盛产白鱼，入诗入馔。唐代长江中游日常鱼鲜，反映南方水乡饮食风貌。', icon: '🐟' }
+                ]
+            },
+            '吴郡': {
+                lat: 31.80, lon: 121.00, type: 'jiangnan',
+                foods: [
+                    { name: '菰饭', desc: '朝代：唐\n出处：李白《宿五松山下荀媪家》\n原文："跪进雕胡饭，月光明素盘。"\n\n菰米即雕胡，为水生植物籽实。唐代菰饭为山野待客之食，口感滑润，带有朴素的田园诗意。', icon: '🍚' }
+                ]
+            },
+            '邯郸': {
+                lat: 36.60, lon: 114.49, type: 'ancient',
+                foods: [
+                    { name: '邯郸酒', desc: '朝代：西汉\n出处：司马迁《史记·货殖列传》\n原文："邯郸亦漳河之间一都会也……作巧奸冶，多美酒。"\n\n邯郸为西汉工商业都会，以酿酒著称。史料未载具体酒名，但"邯郸酒"可作为区域名产代表。', icon: '🍶' }
+                ]
+            },
+            '巴郡': {
+                lat: 29.56, lon: 106.55, type: 'south',
+                foods: [
+                    { name: '盐巴炒肉', desc: '朝代：东晋\n出处：常璩《华阳国志·巴志》\n原文："土植五谷，牲具六畜……出茶、蜜、灵龟、巨犀、山鸡、白雉、黄润、鲜粉。"\n\n巴地自古产盐，巴人用盐腌制或炒制肉类。此条目为基于物产的合理推想菜，非原始文献明确记载。', icon: '🥓' }
+                ]
+            },
+            '敦煌': {
+                lat: 40.14, lon: 94.66, type: 'ancient',
+                foods: [
+                    { name: '蒲桃', desc: '朝代：西汉\n出处：司马迁《史记·大宛列传》\n原文："宛左右以蒲桃为酒，富人藏酒至万馀石。"\n\n蒲桃即葡萄。张骞通西域后引入中原，敦煌为传入要道。汉唐间敦煌以葡萄及葡萄酒闻名。', icon: '🍇' }
+                ]
+            },
+            '益州郡': {
+                lat: 25.04, lon: 102.71, type: 'south',
+                foods: [
+                    { name: '蒌叶', desc: '朝代：西汉\n出处：葛洪托名刘歆《西京杂记》\n原文："蒟蒟蒌，实如桑椹，十一月熟。"\n\n蒌叶为西南地区常用调味植物，常与蒟酱相配。此书记载西汉益州郡（滇池区域）物产，文献成书于东晋。', icon: '🍃' }
+                ]
+            },
+            '长安': {
+                lat: 34.34, lon: 108.94, type: 'ancient',
+                foods: [
+                    { name: '驼蹄炙', desc: '朝代：唐\n出处：杜甫《自京赴奉先县咏怀五百字》\n原文："劝客驼蹄羹，霜橙压香橘。"\n\n驼蹄慢炖成浓羹，配冬橙解腻。唐代贵族宴席上的顶级珍味，价比熊掌。', icon: '🐪' }
+                ]
+            },
+            '洛阳': {
+                lat: 34.62, lon: 112.45, type: 'ancient',
+                foods: [
+                    { name: '胡麻饼', desc: '朝代：唐\n出处：白居易《寄胡饼与杨万州》\n原文："胡麻饼样学京都，面脆油香新出炉。"\n\n芝麻胡饼，烤制后外脆内软。唐代洛阳流行的街市小吃，受西域饮食影响。', icon: '🫓' }
+                ]
+            },
+            '黄州': {
+                lat: 30.45, lon: 114.87, type: 'ancient',
+                foods: [
+                    { name: '东坡肉', desc: '朝代：北宋\n出处：苏轼《猪肉颂》\n原文："待他自熟莫催他，火候足时他自美。"\n\n慢火煨炖猪肉，肥而不腻。苏轼谪居黄州（今湖北黄冈）时所作，后此菜附会"东坡"之名流传至杭州。', icon: '🥩' }
+                ]
+            },
+            '临安': {
+                lat: 30.15, lon: 119.40, type: 'jiangnan',
+                foods: [
+                    { name: '山海兜', desc: '朝代：南宋\n出处：林洪《山家清供》\n原文："采笋、蕨、鲫鱼、虾，同煮为汤，以粉皮兜裹，名曰山海兜。"\n\n山野与河海鲜味的结合，以粉皮包裹成兜状。南宋临安风行的清雅素食，体现江南食尚。', icon: '🍲' }
+                ]
+            },
+            '楚州': {
+                lat: 33.50, lon: 119.15, type: 'jiangnan',
+                foods: [
+                    { name: '蟹黄包', desc: '朝代：宋\n出处：周煇《清波杂志》\n原文："淮右多蟹，取黄包之，名曰蟹包，味极珍美。"\n\n宋代淮安一带已有蟹黄包。以蟹黄为馅，面皮包裹蒸制，为早期汤包雏形。', icon: '🦀' }
+                ]
+            },
+            '襄阳': {
+                lat: 32.02, lon: 112.12, type: 'ancient',
+                foods: [
+                    { name: '缩项鳊', desc: '朝代：唐\n出处：孟浩然《冬至后过吴张二子檀溪别业》\n原文："鸟泊随阳雁，鱼藏缩项鳊。"\n\n缩项鳊为汉江襄阳段名产，颈部短缩，肉质细嫩。唐代文人士大夫宴饮常见。', icon: '🐟' }
+                ]
+            },
+            '成纪': {
+                lat: 34.58, lon: 105.72, type: 'ancient',
+                foods: [
+                    { name: '荞麦呱呱', desc: '朝代：元\n出处：忽思慧《饮膳正要》\n原文："荞麦……作河漏，滑细。"\n\n荞麦制面，滑嫩爽口。元代已系统总结荞麦食法。原文为"河漏"（饸饹），甘肃天水"呱呱"为后世演变。', icon: '🍜' }
+                ]
+            },
+            '广州': {
+                lat: 23.16, lon: 113.23, type: 'south',
+                foods: [
+                    { name: '蚝', desc: '朝代：宋\n出处：周去非《岭外代答》\n原文："岭南之俗，食必蚝。"\n\n宋代岭南沿海食蚝成俗。可生食或加工，反映东南沿海海鲜饮食传统。', icon: '🦪' }
+                ]
+            },
+            '长沙': {
+                lat: 28.23, lon: 112.94, type: 'south',
+                foods: [
+                    { name: '寒具', desc: '朝代：战国\n出处：屈原《楚辞·招魂》\n原文："粔籹蜜饵，有餦餭些。"\n\n寒具即馓子，为油炸面食。战国楚地祭祀、招魂仪式中的供品，也作日常小食。', icon: '🥨' }
+                ]
+            },
+            '会稽': {
+                lat: 29.50, lon: 121.00, type: 'jiangnan',
+                foods: [
+                    { name: '莼菜羹', desc: '朝代：东晋\n出处：刘义庆《世说新语》\n原文："莼羹鲈脍。"\n\n莼菜滑嫩，制羹清淡鲜美。东晋江南士族饮食代表，与鲈鱼并称"莼鲈之思"。', icon: '🍃' }
+                ]
+            },
+            '东京': {
+                lat: 34.76, lon: 114.35, type: 'ancient',
+                foods: [
+                    { name: '猪胰胡饼', desc: '朝代：北宋\n出处：孟元老《东京梦华录》\n原文："凡饼店有油饼、蒸饼、糖饼、肉饼、菊花饼、金花饼、猪胰胡饼、白肉胡饼。"\n\n以猪胰子和面或入馅制成的胡饼。北宋开封街头常见，油脂香浓。', icon: '🫓' }
+                ]
+            },
+            '江宁': {
+                lat: 32.04, lon: 118.78, type: 'jiangnan',
+                foods: [
+                    { name: '杨中丞豆腐', desc: '朝代：清\n出处：袁枚《随园食单·杂素菜单》\n原文："豆腐用鸡汤、蘑菇、虾米、火腿同煮，临起加葱、姜、笋，其味无穷。杨中丞家法也。"\n\n清代文人精致素馔代表。豆腐借鲜汤、火腿提味，体现"以素托荤"的江南食风。', icon: '🧈' }
+                ]
+            },
+            '太原': {
+                lat: 37.87, lon: 112.55, type: 'ancient',
+                foods: [
+                    { name: '鹌鹑茄子', desc: '朝代：清\n出处：《调鼎集·茄》\n原文："茄子切段，挖空，填肉糜、鹌鹑肉，油炸后红烧。"\n\n清代官府菜或市肆菜典型。茄子酿鹌鹑肉，先炸后烧，味厚形巧。', icon: '🍆' }
+                ]
+            }
+        };
+
+        let scene, camera, renderer, css2dRenderer, controls;
+        let cityMarkers = [], terrainMesh;
+        let scrollClipPlanes = []; // 卷轴裁剪平面
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let clock = new THREE.Clock();
+        let selectedCity = null;
+
+        // ==================== 地区环境特效系统 ====================
+        const regionEffects = {
+            particles: [],
+            silhouettes: [],
+            animations: []
+        };
+
+        // 地区定义（经纬度范围）
+        const REGION_BOUNDS = {
+            northwest: { minLat: 35, maxLat: 49, minLon: 75, maxLon: 108, name: '西北' },
+            north: { minLat: 34, maxLat: 42, minLon: 108, maxLon: 120, name: '华北' },
+            northeast: { minLat: 42, maxLat: 54, minLon: 115, maxLon: 135, name: '东北' },
+            jiangnan: { minLat: 26, maxLat: 36, minLon: 113, maxLon: 125, name: '江南' },
+            south: { minLat: 20, maxLat: 28, minLon: 108, maxLon: 120, name: '华南' },
+            southwest: { minLat: 22, maxLat: 35, minLon: 98, maxLon: 108, name: '西南' },
+            chuanyu: { minLat: 28, maxLat: 32, minLon: 103, maxLon: 108, name: '川渝' },
+            tibet: { minLat: 28, maxLat: 38, minLon: 78, maxLon: 98, name: '青藏' },
+            coastal: [
+                { minLat: 35, maxLat: 38, minLon: 119, maxLon: 123, name: '山东沿海' },
+                { minLat: 30, maxLat: 35, minLon: 120, maxLon: 122, name: '江浙沿海' },
+                { minLat: 23, maxLat: 28, minLon: 117, maxLon: 121, name: '福建沿海' },
+                { minLat: 20, maxLat: 23, minLon: 110, maxLon: 117, name: '广东沿海' }
+            ],
+            southeastCoastal: { minLat: 22, maxLat: 30, minLon: 115, maxLon: 122, name: '东南沿海' }
+        };
+
+        const CHINA_BOUNDS = { minLon: 73.5, maxLon: 135.0, minLat: 18.0, maxLat: 53.5 };
+
+        // 金色参数定义
+        const GOLD_COLORS = {
+            mainRidge: 0xD4AF6A,
+            highlight: 0xFFCC66,
+            dark: 0xB8860B,
+            rim: 0xE6C87A
+        };
+
+        // 检查点是否在区域内
+        function isInRegion(lat, lon, region) {
+            if (Array.isArray(region)) {
+                return region.some(r => isInRegion(lat, lon, r));
+            }
+            return lat >= region.minLat && lat <= region.maxLat &&
+                   lon >= region.minLon && lon <= region.maxLon;
+        }
+
+        function updateLoading(progress) {
+            document.getElementById('loading-bar').style.width = progress + '%';
+        }
+
+        function latLonTo3D(lat, lon, height = 0) {
+            const x = (lon - CHINA_BOUNDS.minLon) / (CHINA_BOUNDS.maxLon - CHINA_BOUNDS.minLon) * 20 - 10;
+            const z = -((lat - CHINA_BOUNDS.minLat) / (CHINA_BOUNDS.maxLat - CHINA_BOUNDS.minLat) * 14 - 7);
+            return new THREE.Vector3(x, height, z);
+        }
+
+        function xyzToLatLon(x, z) {
+            const lon = ((x + 10) / 20) * (CHINA_BOUNDS.maxLon - CHINA_BOUNDS.minLon) + CHINA_BOUNDS.minLon;
+            const lat = CHINA_BOUNDS.maxLat - ((-z + 7) / 14) * (CHINA_BOUNDS.maxLat - CHINA_BOUNDS.minLat);
+            return { lat, lon };
+        }
+
+        // ==================== 粒子系统 ====================
+
+        // 创建风沙粒子（西北）- 更细腻的粒子
+        function createSandParticles() {
+            const particleCount = 600;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const velocities = [];
+
+            for (let i = 0; i < particleCount; i++) {
+                const lat = REGION_BOUNDS.northwest.minLat + Math.random() * (REGION_BOUNDS.northwest.maxLat - REGION_BOUNDS.northwest.minLat);
+                const lon = REGION_BOUNDS.northwest.minLon + Math.random() * (REGION_BOUNDS.northwest.maxLon - REGION_BOUNDS.northwest.minLon);
+                const terrainH = getTerrainHeight(lat, lon);
+                const pos = latLonTo3D(lat, lon, terrainH + 0.3 + Math.random() * 1.5);
+
+                positions[i * 3] = pos.x;
+                positions[i * 3 + 1] = pos.y;
+                positions[i * 3 + 2] = pos.z;
+
+                velocities.push({
+                    x: 0.008 + Math.random() * 0.012,
+                    y: (Math.random() - 0.5) * 0.002,
+                    z: (Math.random() - 0.5) * 0.002
+                });
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            const material = new THREE.PointsMaterial({
+                color: 0xE8D4B0,
+                size: 0.05,
+                transparent: true,
+                opacity: 0.45,
+                blending: THREE.AdditiveBlending
+            });
+
+            const particles = new THREE.Points(geometry, material);
+            particles.userData = { type: 'sand', velocities, region: 'northwest' };
+
+            return particles;
+        }
+
+        // 创建雪花粒子（东北）- 六边形雪花
+        function createSnowParticles() {
+            const particleCount = 300;
+            const group = new THREE.Group();
+
+            for (let i = 0; i < particleCount; i++) {
+                const lat = REGION_BOUNDS.northeast.minLat + Math.random() * (REGION_BOUNDS.northeast.maxLat - REGION_BOUNDS.northeast.minLat);
+                const lon = REGION_BOUNDS.northeast.minLon + Math.random() * (REGION_BOUNDS.northeast.maxLon - REGION_BOUNDS.northeast.minLon);
+                const terrainH = getTerrainHeight(lat, lon);
+                const pos = latLonTo3D(lat, lon, terrainH + 0.3 + Math.random() * 3);
+
+                // 创建六边形雪花
+                const snowflakeShape = new THREE.Shape();
+                const size = 0.025 + Math.random() * 0.015;
+                for (let j = 0; j < 6; j++) {
+                    const angle = (j / 6) * Math.PI * 2;
+                    const x = Math.cos(angle) * size;
+                    const y = Math.sin(angle) * size;
+                    if (j === 0) snowflakeShape.moveTo(x, y);
+                    else snowflakeShape.lineTo(x, y);
+                }
+                snowflakeShape.closePath();
+
+                const geometry = new THREE.ShapeGeometry(snowflakeShape);
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0xFFFFFF,
+                    transparent: true,
+                    opacity: 0.7,
+                    side: THREE.DoubleSide
+                });
+
+                const snowflake = new THREE.Mesh(geometry, material);
+                snowflake.position.copy(pos);
+                snowflake.rotation.z = Math.random() * Math.PI;
+
+                snowflake.userData = {
+                    type: 'snowflake',
+                    velocity: {
+                        x: (Math.random() - 0.5) * 0.002,
+                        y: -0.008 - Math.random() * 0.008,
+                        z: (Math.random() - 0.5) * 0.002
+                    },
+                    rotSpeed: (Math.random() - 0.5) * 0.02
+                };
+
+                group.add(snowflake);
+            }
+
+            group.userData = { type: 'snow', region: 'northeast' };
+            return group;
+        }
+
+        // 创建雨丝（江南）- 更细小的雨
+        function createRainParticles() {
+            const particleCount = 300;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 6);
+
+            for (let i = 0; i < particleCount; i++) {
+                const lat = REGION_BOUNDS.jiangnan.minLat + Math.random() * (REGION_BOUNDS.jiangnan.maxLat - REGION_BOUNDS.jiangnan.minLat);
+                const lon = REGION_BOUNDS.jiangnan.minLon + Math.random() * (REGION_BOUNDS.jiangnan.maxLon - REGION_BOUNDS.jiangnan.minLon);
+                const terrainH = getTerrainHeight(lat, lon);
+                const pos = latLonTo3D(lat, lon, terrainH + 0.8 + Math.random() * 1.5);
+
+                positions[i * 6] = pos.x;
+                positions[i * 6 + 1] = pos.y;
+                positions[i * 6 + 2] = pos.z;
+                positions[i * 6 + 3] = pos.x + 0.02;
+                positions[i * 6 + 4] = pos.y - 0.15;
+                positions[i * 6 + 5] = pos.z;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            const material = new THREE.LineBasicMaterial({
+                color: 0xD0E0F0,
+                transparent: true,
+                opacity: 0.2,
+                linewidth: 1
+            });
+
+            const lines = new THREE.LineSegments(geometry, material);
+            lines.userData = { type: 'rain', region: 'jiangnan' };
+
+            return lines;
+        }
+
+        // 创建雾气（西南）
+        function createMist() {
+            const mistGroup = new THREE.Group();
+
+            for (let i = 0; i < 5; i++) {
+                const geometry = new THREE.PlaneGeometry(8, 3, 8, 4);
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0xE8E0D8,
+                    transparent: true,
+                    opacity: 0.15,
+                    side: THREE.DoubleSide,
+                    depthWrite: false
+                });
+
+                const mist = new THREE.Mesh(geometry, material);
+                const lat = REGION_BOUNDS.southwest.minLat + Math.random() * (REGION_BOUNDS.southwest.maxLat - REGION_BOUNDS.southwest.minLat);
+                const lon = REGION_BOUNDS.southwest.minLon + Math.random() * (REGION_BOUNDS.southwest.maxLon - REGION_BOUNDS.southwest.minLon);
+                const terrainH = getTerrainHeight(lat, lon);
+                const pos = latLonTo3D(lat, lon, terrainH + 0.8);
+
+                mist.position.copy(pos);
+                mist.rotation.x = -Math.PI / 2;
+                mist.userData = {
+                    type: 'mist',
+                    speed: 0.002 + Math.random() * 0.003,
+                    offset: Math.random() * Math.PI * 2
+                };
+
+                mistGroup.add(mist);
+            }
+
+            mistGroup.userData = { type: 'mistGroup', region: 'southwest' };
+            return mistGroup;
+        }
+
+        // ==================== 剪影元素 ====================
+
+        // 创建骆驼刺（西北）
+        function createCamelThorn() {
+            const group = new THREE.Group();
+
+            for (let i = 0; i < 8; i++) {
+                const lat = REGION_BOUNDS.northwest.minLat + Math.random() * (REGION_BOUNDS.northwest.maxLat - REGION_BOUNDS.northwest.minLat);
+                const lon = REGION_BOUNDS.northwest.minLon + Math.random() * (REGION_BOUNDS.northwest.maxLon - REGION_BOUNDS.northwest.minLon);
+                const terrainH = getTerrainHeight(lat, lon);
+                const pos = latLonTo3D(lat, lon, terrainH);
+
+                // 简单的刺状几何
+                const geometry = new THREE.ConeGeometry(0.03, 0.3, 4);
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0x4A4030,
+                    transparent: true,
+                    opacity: 0.7
+                });
+
+                const thorn = new THREE.Mesh(geometry, material);
+                thorn.position.copy(pos);
+                thorn.position.y += 0.15;
+                thorn.rotation.z = (Math.random() - 0.5) * 0.3;
+
+                group.add(thorn);
+            }
+
+            group.userData = { type: 'camelThorn', region: 'northwest' };
+            return group;
+        }
+
+        // 创建烽火台（西北）
+        function createBeaconTower() {
+            const group = new THREE.Group();
+
+            const lat = 40.0;
+            const lon = 94.5;
+            const terrainH = getTerrainHeight(lat, lon);
+            const pos = latLonTo3D(lat, lon, terrainH);
+
+            // 塔身
+            const bodyGeo = new THREE.BoxGeometry(0.4, 0.8, 0.4);
+            const material = new THREE.MeshBasicMaterial({
+                color: 0x5A4A3A,
+                transparent: true,
+                opacity: 0.8
+            });
+            const body = new THREE.Mesh(bodyGeo, material);
+            body.position.copy(pos);
+            body.position.y += 0.4;
+
+            // 塔顶
+            const topGeo = new THREE.BoxGeometry(0.5, 0.15, 0.5);
+            const top = new THREE.Mesh(topGeo, material);
+            top.position.copy(pos);
+            top.position.y += 0.85;
+
+            group.add(body);
+            group.add(top);
+
+            group.userData = { type: 'beaconTower', region: 'northwest' };
+            return group;
+        }
+
+        // 创建针叶林（东北）
+        function createConiferousForest() {
+            const group = new THREE.Group();
+
+            for (let i = 0; i < 20; i++) {
+                const lat = REGION_BOUNDS.northeast.minLat + Math.random() * (REGION_BOUNDS.northeast.maxLat - REGION_BOUNDS.northeast.minLat);
+                const lon = REGION_BOUNDS.northeast.minLon + Math.random() * (REGION_BOUNDS.northeast.maxLon - REGION_BOUNDS.northeast.minLon);
+                const terrainH = getTerrainHeight(lat, lon);
+                const pos = latLonTo3D(lat, lon, terrainH);
+
+                // 树干
+                const trunkGeo = new THREE.CylinderGeometry(0.03, 0.04, 0.4, 6);
+                const trunkMat = new THREE.MeshBasicMaterial({ color: 0x3A3020 });
+                const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+                trunk.position.copy(pos);
+                trunk.position.y += 0.2;
+
+                // 树冠（多层圆锥）
+                const leavesMat = new THREE.MeshBasicMaterial({ color: 0x2A4030 });
+
+                for (let j = 0; j < 3; j++) {
+                    const coneGeo = new THREE.ConeGeometry(0.15 - j * 0.03, 0.4, 6);
+                    const cone = new THREE.Mesh(coneGeo, leavesMat);
+                    cone.position.copy(pos);
+                    cone.position.y += 0.5 + j * 0.25;
+                    group.add(cone);
+                }
+
+                group.add(trunk);
+            }
+
+            group.userData = { type: 'forest', region: 'northeast' };
+            return group;
+        }
+
+        // 创建正常柳树（东南沿海）- 向上生长的柳枝
+        function createWillowTree() {
+            const group = new THREE.Group();
+
+            // 创建3棵正常的柳树在东南沿海
+            for (let i = 0; i < 3; i++) {
+                const lat = REGION_BOUNDS.southeastCoastal.minLat + Math.random() * (REGION_BOUNDS.southeastCoastal.maxLat - REGION_BOUNDS.southeastCoastal.minLat);
+                const lon = REGION_BOUNDS.southeastCoastal.minLon + Math.random() * (REGION_BOUNDS.southeastCoastal.maxLon - REGION_BOUNDS.southeastCoastal.minLon);
+                const terrainH = getTerrainHeight(lat, lon);
+                const pos = latLonTo3D(lat, lon, terrainH);
+
+                const treeGroup = new THREE.Group();
+                treeGroup.position.copy(pos);
+
+                // 主干 - 带弯曲
+                const trunkCurve = new THREE.CatmullRomCurve3([
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(0.02, 0.3, 0),
+                    new THREE.Vector3(-0.01, 0.6, 0.02)
+                ]);
+                const trunkGeo = new THREE.TubeGeometry(trunkCurve, 8, 0.035, 6, false);
+                const trunkMat = new THREE.MeshBasicMaterial({ color: 0x4A4030 });
+                const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+                treeGroup.add(trunk);
+
+                // 主要分枝 - 向上生长
+                const branchMat = new THREE.MeshBasicMaterial({ color: 0x5A4A3A });
+                for (let b = 0; b < 5; b++) {
+                    const angle = (b / 5) * Math.PI * 2 + Math.random() * 0.5;
+                    const branchLength = 0.4 + Math.random() * 0.2;
+                    // 向上延伸的分枝
+                    const branchCurve = new THREE.CatmullRomCurve3([
+                        new THREE.Vector3(0, 0.5, 0),
+                        new THREE.Vector3(Math.cos(angle) * branchLength * 0.5, 0.8, Math.sin(angle) * branchLength * 0.5),
+                        new THREE.Vector3(Math.cos(angle) * branchLength * 0.8, 0.9, Math.sin(angle) * branchLength * 0.8)
+                    ]);
+                    const branchGeo = new THREE.TubeGeometry(branchCurve, 4, 0.015, 4, false);
+                    const branch = new THREE.Mesh(branchGeo, branchMat);
+                    treeGroup.add(branch);
+
+                    // 向上生长的细枝
+                    const twigMat = new THREE.MeshBasicMaterial({ color: 0x6A9A6A });
+                    for (let t = 0; t < 6; t++) {
+                        const twigAngle = angle + (t - 3) * 0.2;
+                        const twigLength = 0.3 + Math.random() * 0.2;
+                        const startX = Math.cos(angle) * branchLength * (0.4 + t * 0.1);
+                        const startZ = Math.sin(angle) * branchLength * (0.4 + t * 0.1);
+                        const startY = 0.7 + t * 0.03;
+
+                        // 创建向上延伸的细枝
+                        const twigCurve = new THREE.CatmullRomCurve3([
+                            new THREE.Vector3(startX, startY, startZ),
+                            new THREE.Vector3(startX + Math.cos(twigAngle) * twigLength * 0.5, startY + twigLength * 0.6, startZ + Math.sin(twigAngle) * twigLength * 0.5),
+                            new THREE.Vector3(startX + Math.cos(twigAngle) * twigLength * 0.3, startY + twigLength, startZ + Math.sin(twigAngle) * twigLength * 0.3)
+                        ]);
+                        const twigGeo = new THREE.TubeGeometry(twigCurve, 5, 0.004, 3, false);
+                        const twig = new THREE.Mesh(twigGeo, twigMat);
+
+                        twig.userData = {
+                            type: 'willowBranch',
+                            baseRotations: { x: twig.rotation.x, z: twig.rotation.z },
+                            swaySpeed: 0.8 + Math.random() * 0.5,
+                            swayOffset: Math.random() * Math.PI * 2
+                        };
+
+                        treeGroup.add(twig);
+                    }
+                }
+
+                group.add(treeGroup);
+            }
+
+            group.userData = { type: 'willow', region: 'southeastCoastal' };
+            return group;
+        }
+
+        // 创建乌篷船（江南）
+        function createBoat() {
+            const group = new THREE.Group();
+
+            const lat = 30.5;
+            const lon = 119.5;
+            const terrainH = getTerrainHeight(lat, lon);
+            const pos = latLonTo3D(lat, lon, terrainH + 0.05);
+
+            // 船身
+            const hullGeo = new THREE.BoxGeometry(0.5, 0.15, 0.2);
+            const hullMat = new THREE.MeshBasicMaterial({ color: 0x3A3020 });
+            const hull = new THREE.Mesh(hullGeo, hullMat);
+            hull.position.copy(pos);
+
+            // 船篷
+            const canopyGeo = new THREE.ConeGeometry(0.15, 0.4, 3);
+            const canopyMat = new THREE.MeshBasicMaterial({ color: 0x4A4030 });
+            const canopy = new THREE.Mesh(canopyGeo, canopyMat);
+            canopy.position.copy(pos);
+            canopy.position.y += 0.25;
+            canopy.rotation.z = Math.PI;
+            canopy.rotation.y = Math.PI / 2;
+
+            group.add(hull);
+            group.add(canopy);
+
+            group.userData = {
+                type: 'boat',
+                region: 'jiangnan',
+                basePosition: pos.clone(),
+                floatSpeed: 0.8,
+                floatOffset: 0
+            };
+
+            return group;
+        }
+
+        // 创建芭蕉叶（华南）
+        function createBananaLeaves() {
+            const group = new THREE.Group();
+
+            for (let i = 0; i < 10; i++) {
+                const lat = REGION_BOUNDS.south.minLat + Math.random() * (REGION_BOUNDS.south.maxLat - REGION_BOUNDS.south.minLat);
+                const lon = REGION_BOUNDS.south.minLon + Math.random() * (REGION_BOUNDS.south.maxLon - REGION_BOUNDS.south.minLon);
+                const terrainH = getTerrainHeight(lat, lon);
+                const pos = latLonTo3D(lat, lon, terrainH);
+
+                // 芭蕉叶形状（扇形平面）
+                const geometry = new THREE.PlaneGeometry(0.4, 0.6, 4, 4);
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0x4A6A3A,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.9
+                });
+
+                const leaf = new THREE.Mesh(geometry, material);
+                leaf.position.copy(pos);
+                leaf.position.y += 0.5;
+                leaf.rotation.x = -Math.PI / 4;
+                leaf.rotation.y = Math.random() * Math.PI * 2;
+
+                group.add(leaf);
+            }
+
+            group.userData = { type: 'banana', region: 'south' };
+            return group;
+        }
+
+        // 创建精致竹子（川渝地区）
+        function createBamboo() {
+            const group = new THREE.Group();
+
+            // 创建多丛竹林，每丛更密集
+            for (let c = 0; c < 8; c++) {
+                const clusterLat = REGION_BOUNDS.chuanyu.minLat + Math.random() * (REGION_BOUNDS.chuanyu.maxLat - REGION_BOUNDS.chuanyu.minLat);
+                const clusterLon = REGION_BOUNDS.chuanyu.minLon + Math.random() * (REGION_BOUNDS.chuanyu.maxLon - REGION_BOUNDS.chuanyu.minLon);
+
+                // 每丛5-8根竹子
+                const bambooCount = 5 + Math.floor(Math.random() * 4);
+                for (let i = 0; i < bambooCount; i++) {
+                    const lat = clusterLat + (Math.random() - 0.5) * 0.3;
+                    const lon = clusterLon + (Math.random() - 0.5) * 0.3;
+                    const terrainH = getTerrainHeight(lat, lon);
+                    const pos = latLonTo3D(lat, lon, terrainH);
+
+                    const height = 1.0 + Math.random() * 0.8;
+                    const bambooGroup = new THREE.Group();
+                    bambooGroup.position.copy(pos);
+
+                    // 竹节数
+                    const segments = 6 + Math.floor(Math.random() * 3);
+                    const segmentHeight = height / segments;
+
+                    for (let j = 0; j < segments; j++) {
+                        // 竹节主体 - 带轻微锥度
+                        const radius = 0.018 - j * 0.001;
+                        const segmentGeo = new THREE.CylinderGeometry(radius, radius + 0.003, segmentHeight * 0.85, 8);
+                        const segmentMat = new THREE.MeshBasicMaterial({ color: 0x5A7A5A });
+                        const segment = new THREE.Mesh(segmentGeo, segmentMat);
+                        segment.position.y = j * segmentHeight + segmentHeight * 0.425;
+                        bambooGroup.add(segment);
+
+                        // 竹节环 - 明显的节状结构
+                        const jointGeo = new THREE.CylinderGeometry(radius + 0.005, radius + 0.005, 0.008, 8);
+                        const jointMat = new THREE.MeshBasicMaterial({ color: 0x3A5A3A });
+                        const joint = new THREE.Mesh(jointGeo, jointMat);
+                        joint.position.y = j * segmentHeight + segmentHeight * 0.9;
+                        bambooGroup.add(joint);
+
+                        // 分枝（从中上部开始）
+                        if (j >= segments - 4 && j < segments - 1) {
+                            const branchCount = 1 + Math.floor(Math.random() * 2);
+                            for (let b = 0; b < branchCount; b++) {
+                                const branchAngle = Math.random() * Math.PI * 2;
+                                const branchLen = 0.2 + Math.random() * 0.15;
+
+                                // 分枝杆
+                                const branchCurve = new THREE.CatmullRomCurve3([
+                                    new THREE.Vector3(Math.cos(branchAngle) * radius, j * segmentHeight + segmentHeight * 0.8, Math.sin(branchAngle) * radius),
+                                    new THREE.Vector3(Math.cos(branchAngle) * (radius + branchLen * 0.5), j * segmentHeight + segmentHeight * 0.8 + branchLen * 0.3, Math.sin(branchAngle) * (radius + branchLen * 0.5)),
+                                    new THREE.Vector3(Math.cos(branchAngle) * (radius + branchLen), j * segmentHeight + segmentHeight * 0.8 + branchLen * 0.5, Math.sin(branchAngle) * (radius + branchLen))
+                                ]);
+                                const branchGeo = new THREE.TubeGeometry(branchCurve, 3, 0.004, 4, false);
+                                const branchMat = new THREE.MeshBasicMaterial({ color: 0x4A6A4A });
+                                const branch = new THREE.Mesh(branchGeo, branchMat);
+                                bambooGroup.add(branch);
+
+                                // 分枝上的竹叶 - 细长形状
+                                const leafMat = new THREE.MeshBasicMaterial({ color: 0x6A9A6A, side: THREE.DoubleSide });
+                                for (let l = 0; l < 5; l++) {
+                                    const leafShape = new THREE.Shape();
+                                    const leafLen = 0.12 + Math.random() * 0.06;
+                                    const leafWid = 0.015;
+                                    leafShape.moveTo(0, 0);
+                                    leafShape.quadraticCurveTo(leafWid, leafLen * 0.5, 0, leafLen);
+                                    leafShape.quadraticCurveTo(-leafWid, leafLen * 0.5, 0, 0);
+
+                                    const leafGeo = new THREE.ShapeGeometry(leafShape);
+                                    const leaf = new THREE.Mesh(leafGeo, leafMat);
+
+                                    const leafPos = branchCurve.getPoint(0.5 + l * 0.1);
+                                    leaf.position.copy(leafPos);
+                                    leaf.rotation.y = Math.random() * Math.PI * 2;
+                                    leaf.rotation.z = Math.PI / 4 + (Math.random() - 0.5) * 0.3;
+
+                                    // 随风摆动数据
+                                    leaf.userData = {
+                                        type: 'bambooLeaf',
+                                        swaySpeed: 1.5 + Math.random(),
+                                        swayOffset: Math.random() * Math.PI * 2
+                                    };
+
+                                    bambooGroup.add(leaf);
+                                }
+                            }
+                        }
+
+                        // 顶端竹叶 - 更多更密集
+                        if (j === segments - 1) {
+                            const topLeafMat = new THREE.MeshBasicMaterial({ color: 0x7AAA7A, side: THREE.DoubleSide });
+                            for (let k = 0; k < 12; k++) {
+                                const leafShape = new THREE.Shape();
+                                const leafLen = 0.15 + Math.random() * 0.08;
+                                const leafWid = 0.018;
+                                leafShape.moveTo(0, 0);
+                                leafShape.quadraticCurveTo(leafWid, leafLen * 0.5, 0, leafLen);
+                                leafShape.quadraticCurveTo(-leafWid, leafLen * 0.5, 0, 0);
+
+                                const leafGeo = new THREE.ShapeGeometry(leafShape);
+                                const leaf = new THREE.Mesh(leafGeo, topLeafMat);
+
+                                const angle = (k / 12) * Math.PI * 2 + Math.random() * 0.5;
+                                const spread = 0.05 + Math.random() * 0.05;
+                                leaf.position.set(
+                                    Math.cos(angle) * spread,
+                                    height - 0.05,
+                                    Math.sin(angle) * spread
+                                );
+                                leaf.rotation.y = angle;
+                                leaf.rotation.x = Math.PI / 3 + (Math.random() - 0.5) * 0.2;
+
+                                leaf.userData = {
+                                    type: 'bambooLeaf',
+                                    swaySpeed: 2 + Math.random(),
+                                    swayOffset: Math.random() * Math.PI * 2
+                                };
+
+                                bambooGroup.add(leaf);
+                            }
+                        }
+                    }
+
+                    // 根部竹笋鞘
+                    for (let r = 0; r < 3; r++) {
+                        const sheathGeo = new THREE.ConeGeometry(0.025 - r * 0.005, 0.1, 6, 1, true);
+                        const sheathMat = new THREE.MeshBasicMaterial({ color: 0x3A4A3A, side: THREE.DoubleSide });
+                        const sheath = new THREE.Mesh(sheathGeo, sheathMat);
+                        sheath.position.y = r * 0.03;
+                        sheath.rotation.z = (Math.random() - 0.5) * 0.3;
+                        bambooGroup.add(sheath);
+                    }
+
+                    group.add(bambooGroup);
+                }
+            }
+
+            group.userData = { type: 'bamboo', region: 'chuanyu' };
+            return group;
+        }
+
+        // 创建经幡（青藏）
+        function createPrayerFlags() {
+            const group = new THREE.Group();
+
+            const colors = [0x4A90A4, 0xFFFFFF, 0xC4A35A, 0x8B4513, 0x5A4A8A];
+            const flagCount = 15;
+
+            for (let i = 0; i < 3; i++) {
+                const lat = REGION_BOUNDS.tibet.minLat + 2 + Math.random() * 4;
+                const lon = REGION_BOUNDS.tibet.minLon + 5 + Math.random() * 10;
+                const terrainH = getTerrainHeight(lat, lon);
+                const pos = latLonTo3D(lat, lon, terrainH);
+
+                // 旗杆
+                const poleGeo = new THREE.CylinderGeometry(0.02, 0.02, 2, 6);
+                const poleMat = new THREE.MeshBasicMaterial({ color: 0x5A4A3A });
+                const pole = new THREE.Mesh(poleGeo, poleMat);
+                pole.position.copy(pos);
+                pole.position.y += 1;
+                group.add(pole);
+
+                // 彩旗
+                for (let j = 0; j < flagCount; j++) {
+                    const flagGeo = new THREE.PlaneGeometry(0.15, 0.1);
+                    const flagMat = new THREE.MeshBasicMaterial({
+                        color: colors[j % colors.length],
+                        side: THREE.DoubleSide
+                    });
+                    const flag = new THREE.Mesh(flagGeo, flagMat);
+
+                    flag.position.copy(pos);
+                    flag.position.x += 0.1 + j * 0.12;
+                    flag.position.y += 1.8 - j * 0.05;
+
+                    flag.userData = {
+                        type: 'prayerFlag',
+                        baseY: flag.position.y,
+                        swaySpeed: 2 + Math.random(),
+                        swayOffset: j * 0.2
+                    };
+
+                    group.add(flag);
+                }
+            }
+
+            group.userData = { type: 'prayerFlags', region: 'tibet' };
+            return group;
+        }
+
+        // 创建渔船（沿海）- 更精致，动态出海
+        function createFishingBoat() {
+            const group = new THREE.Group();
+
+            const coastalAreas = REGION_BOUNDS.coastal;
+            for (let a = 0; a < coastalAreas.length; a++) {
+                const area = coastalAreas[a];
+                // 每个沿海区域创建2艘船，各自独立出海
+                for (let i = 0; i < 2; i++) {
+                    const lat = area.minLat + Math.random() * (area.maxLat - area.minLat);
+                    // 船从海岸线附近开始
+                    const startLon = area.maxLon - 0.15;
+                    const terrainH = getTerrainHeight(lat, startLon);
+                    const startPos = latLonTo3D(lat, startLon, terrainH + 0.02);
+
+                    const boatGroup = new THREE.Group();
+                    boatGroup.position.copy(startPos);
+
+                    // 船身 - 弧形底部
+                    const hullShape = new THREE.Shape();
+                    hullShape.moveTo(-0.25, 0);
+                    hullShape.quadraticCurveTo(0, -0.06, 0.25, 0);
+                    hullShape.lineTo(0.22, 0.08);
+                    hullShape.lineTo(-0.22, 0.08);
+                    hullShape.closePath();
+                    const hullGeo = new THREE.ExtrudeGeometry(hullShape, { depth: 0.12, bevelEnabled: false });
+                    const hullMat = new THREE.MeshBasicMaterial({ color: 0x5A4030 });
+                    const hull = new THREE.Mesh(hullGeo, hullMat);
+                    hull.position.z = -0.06;
+                    boatGroup.add(hull);
+
+                    // 船舷
+                    const rimGeo = new THREE.BoxGeometry(0.52, 0.04, 0.14);
+                    const rimMat = new THREE.MeshBasicMaterial({ color: 0x4A3020 });
+                    const rim = new THREE.Mesh(rimGeo, rimMat);
+                    rim.position.y = 0.08;
+                    boatGroup.add(rim);
+
+                    // 船舱/甲板
+                    const deckGeo = new THREE.BoxGeometry(0.2, 0.08, 0.1);
+                    const deckMat = new THREE.MeshBasicMaterial({ color: 0x6A5040 });
+                    const deck = new THREE.Mesh(deckGeo, deckMat);
+                    deck.position.set(-0.05, 0.12, 0);
+                    boatGroup.add(deck);
+
+                    // 桅杆 - 前桅
+                    const mastGeo = new THREE.CylinderGeometry(0.008, 0.01, 0.7, 6);
+                    const mastMat = new THREE.MeshBasicMaterial({ color: 0x4A3A2A });
+                    const mast = new THREE.Mesh(mastGeo, mastMat);
+                    mast.position.set(0.08, 0.4, 0);
+                    boatGroup.add(mast);
+
+                    // 横桁
+                    const yardGeo = new THREE.CylinderGeometry(0.004, 0.004, 0.35, 4);
+                    const yardMat = new THREE.MeshBasicMaterial({ color: 0x4A3A2A });
+                    const yard = new THREE.Mesh(yardGeo, yardMat);
+                    yard.rotation.z = Math.PI / 2;
+                    yard.position.set(0.08, 0.6, 0);
+                    boatGroup.add(yard);
+
+                    // 主帆 - 弧形
+                    const sailShape = new THREE.Shape();
+                    sailShape.moveTo(0, 0);
+                    sailShape.quadraticCurveTo(0.15, 0.15, 0.12, 0.45);
+                    sailShape.lineTo(-0.08, 0.45);
+                    sailShape.quadraticCurveTo(-0.05, 0.15, 0, 0);
+                    const sailGeo = new THREE.ShapeGeometry(sailShape);
+                    const sailMat = new THREE.MeshBasicMaterial({
+                        color: 0xF0E8D0,
+                        side: THREE.DoubleSide,
+                        transparent: true,
+                        opacity: 0.9
+                    });
+                    const sail = new THREE.Mesh(sailGeo, sailMat);
+                    sail.position.set(0.08, 0.15, 0);
+                    boatGroup.add(sail);
+
+                    // 船帆索具线条
+                    const ropeGeo = new THREE.CylinderGeometry(0.001, 0.001, 0.5, 3);
+                    const ropeMat = new THREE.MeshBasicMaterial({ color: 0x3A3020 });
+                    const rope1 = new THREE.Mesh(ropeGeo, ropeMat);
+                    rope1.position.set(-0.1, 0.25, 0);
+                    rope1.rotation.z = -0.3;
+                    boatGroup.add(rope1);
+
+                    // 船锚
+                    const anchorGeo = new THREE.TorusGeometry(0.02, 0.003, 4, 8, Math.PI);
+                    const anchorMat = new THREE.MeshBasicMaterial({ color: 0x2A2020 });
+                    const anchor = new THREE.Mesh(anchorGeo, anchorMat);
+                    anchor.position.set(-0.22, 0.04, 0);
+                    anchor.rotation.z = Math.PI;
+                    boatGroup.add(anchor);
+
+                    // 动态出海参数
+                    const endLon = area.maxLon + 1.2; // 向外海航行，轨迹更长
+                    const endPos = latLonTo3D(lat, endLon, terrainH + 0.02);
+
+                    boatGroup.userData = {
+                        type: 'fishingBoat',
+                        startPos: startPos.clone(),
+                        endPos: endPos.clone(),
+                        startLon: startLon,
+                        endLon: endLon,
+                        lat: lat,
+                        baseY: startPos.y,
+                        sailSpeed: 0.008 + Math.random() * 0.006, // 航行速度更慢，让轨迹更明显
+                        progress: Math.random() * 0.3, // 随机初始进度
+                        rockSpeed: 0.8 + Math.random() * 0.4, // 摇摆速度更快
+                        rockOffset: a * 10 + i,
+                        waitTime: 0, // 等待时间
+                        maxWaitTime: 4 + Math.random() * 4 // 到达后等待更久
+                    };
+
+                    group.add(boatGroup);
+                }
+            }
+
+            group.userData = { type: 'fishingBoatGroup', region: 'coastal' };
+            return group;
+        }
+
+        // 创建海鸥（沿海）- 更精致的造型和动画
+        function createSeagulls() {
+            const group = new THREE.Group();
+
+            for (let i = 0; i < 8; i++) {
+                const seagullGroup = new THREE.Group();
+
+                // 身体
+                const bodyGeo = new THREE.SphereGeometry(0.025, 6, 4);
+                bodyGeo.scale(2, 0.8, 0.6);
+                const bodyMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+                const body = new THREE.Mesh(bodyGeo, bodyMat);
+                seagullGroup.add(body);
+
+                // 翅膀展开 - 左翼
+                const wingShape = new THREE.Shape();
+                wingShape.moveTo(0, 0);
+                wingShape.quadraticCurveTo(-0.12, 0.02, -0.18, 0);
+                wingShape.lineTo(-0.15, -0.03);
+                wingShape.lineTo(0, -0.02);
+                const wingGeo = new THREE.ShapeGeometry(wingShape);
+                const wingMat = new THREE.MeshBasicMaterial({
+                    color: 0xFFFFFF,
+                    side: THREE.DoubleSide
+                });
+                const leftWing = new THREE.Mesh(wingGeo, wingMat);
+                leftWing.position.set(-0.03, 0.005, 0);
+                leftWing.userData = { type: 'seagullWing', side: 'left' };
+                seagullGroup.add(leftWing);
+
+                // 右翼
+                const rightWingShape = new THREE.Shape();
+                rightWingShape.moveTo(0, 0);
+                rightWingShape.quadraticCurveTo(0.12, 0.02, 0.18, 0);
+                rightWingShape.lineTo(0.15, -0.03);
+                rightWingShape.lineTo(0, -0.02);
+                const rightWingGeo = new THREE.ShapeGeometry(rightWingShape);
+                const rightWing = new THREE.Mesh(rightWingGeo, wingMat);
+                rightWing.position.set(0.03, 0.005, 0);
+                rightWing.userData = { type: 'seagullWing', side: 'right' };
+                seagullGroup.add(rightWing);
+
+                // 尾巴
+                const tailGeo = new THREE.BufferGeometry();
+                const tailVertices = new Float32Array([
+                    -0.03, 0, 0,
+                    0, -0.04, 0,
+                    0.03, 0, 0
+                ]);
+                tailGeo.setAttribute('position', new THREE.BufferAttribute(tailVertices, 3));
+                const tail = new THREE.Mesh(tailGeo, wingMat);
+                tail.position.set(-0.06, 0, 0);
+                seagullGroup.add(tail);
+
+                const coastalAreas = REGION_BOUNDS.coastal;
+                const area = coastalAreas[i % coastalAreas.length];
+                const lat = area.minLat + Math.random() * (area.maxLat - area.minLat);
+                const lon = area.maxLon - 0.2 - Math.random() * 0.3;
+                const terrainH = getTerrainHeight(lat, lon);
+                const pos = latLonTo3D(lat, lon, terrainH + 1.2 + Math.random() * 1);
+
+                seagullGroup.position.copy(pos);
+
+                seagullGroup.userData = {
+                    type: 'seagull',
+                    basePosition: pos.clone(),
+                    flySpeed: 0.6 + Math.random() * 0.4,
+                    flyRadius: 0.6 + Math.random() * 0.4,
+                    circleOffset: Math.random() * Math.PI * 2,
+                    wingFlapSpeed: 8 + Math.random() * 4
+                };
+
+                group.add(seagullGroup);
+            }
+
+            group.userData = { type: 'seagulls', region: 'coastal' };
+            return group;
+        }
+
+        // 创建大雁（华北）- 修复显示问题
+        function createWildGeese() {
+            const group = new THREE.Group();
+
+            // 3组大雁，人字形排列
+            for (let g = 0; g < 3; g++) {
+                const flockGroup = new THREE.Group();
+
+                // 每只大雁用简单的几何体表示
+                for (let i = 0; i < 7; i++) {
+                    const gooseGroup = new THREE.Group();
+
+                    // 身体 - 小椭圆
+                    const bodyGeo = new THREE.SphereGeometry(0.04, 6, 4);
+                    bodyGeo.scale(1.5, 0.6, 0.5);
+                    const bodyMat = new THREE.MeshBasicMaterial({ color: 0x3A3020 });
+                    const body = new THREE.Mesh(bodyGeo, bodyMat);
+                    gooseGroup.add(body);
+
+                    // 左翼
+                    const wingGeo = new THREE.BufferGeometry();
+                    const wingSize = 0.08;
+                    const vertices = new Float32Array([
+                        0, 0, 0,
+                        -wingSize, wingSize * 0.3, 0,
+                        -wingSize * 1.2, 0, 0
+                    ]);
+                    wingGeo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+                    const wingMat = new THREE.MeshBasicMaterial({
+                        color: 0x3A3020,
+                        side: THREE.DoubleSide
+                    });
+                    const leftWing = new THREE.Mesh(wingGeo, wingMat);
+                    leftWing.position.set(-0.02, 0.02, 0);
+                    gooseGroup.add(leftWing);
+
+                    // 右翼
+                    const rightWingGeo = new THREE.BufferGeometry();
+                    const rightVertices = new Float32Array([
+                        0, 0, 0,
+                        wingSize, wingSize * 0.3, 0,
+                        wingSize * 1.2, 0, 0
+                    ]);
+                    rightWingGeo.setAttribute('position', new THREE.BufferAttribute(rightVertices, 3));
+                    const rightWing = new THREE.Mesh(rightWingGeo, wingMat);
+                    rightWing.position.set(0.02, 0.02, 0);
+                    gooseGroup.add(rightWing);
+
+                    // 人字形排列 - 中间的大雁在前，两侧的依次在后
+                    const offsetX = (i - 3) * 0.12;
+                    const offsetZ = Math.abs(i - 3) * 0.06;
+                    gooseGroup.position.set(offsetX, 0, offsetZ);
+
+                    flockGroup.add(gooseGroup);
+                }
+
+                const lat = 36 + g * 1.5;
+                const lon = 112 + g * 2;
+                const terrainH = getTerrainHeight(lat, lon);
+                const pos = latLonTo3D(lat, lon, terrainH + 2.5 + g * 0.3);
+
+                flockGroup.position.copy(pos);
+                flockGroup.userData = {
+                    type: 'gooseFlock',
+                    flySpeed: 0.02,
+                    direction: new THREE.Vector3(1, 0, 0.3).normalize(),
+                    initialPos: pos.clone()
+                };
+
+                group.add(flockGroup);
+            }
+
+            group.userData = { type: 'geese', region: 'north' };
+            return group;
+        }
+
+        // 创建燕子（华南）
+        function createSwallows() {
+            const group = new THREE.Group();
+
+            for (let i = 0; i < 8; i++) {
+                const geometry = new THREE.BufferGeometry();
+                const vertices = new Float32Array([
+                    -0.04, 0, 0,
+                    0, 0.01, 0.02,
+                    0.04, 0, 0
+                ]);
+                geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0x2A2020,
+                    side: THREE.DoubleSide
+                });
+
+                const swallow = new THREE.Mesh(geometry, material);
+
+                const lat = REGION_BOUNDS.south.minLat + Math.random() * (REGION_BOUNDS.south.maxLat - REGION_BOUNDS.south.minLat);
+                const lon = REGION_BOUNDS.south.minLon + Math.random() * (REGION_BOUNDS.south.maxLon - REGION_BOUNDS.south.minLon);
+                const terrainH = getTerrainHeight(lat, lon);
+                const pos = latLonTo3D(lat, lon, terrainH + 0.5 + Math.random());
+
+                swallow.position.copy(pos);
+                swallow.userData = {
+                    type: 'swallow',
+                    basePosition: pos.clone(),
+                    flySpeed: 1.5 + Math.random(),
+                    circleRadius: 0.3 + Math.random() * 0.3,
+                    circleOffset: Math.random() * Math.PI * 2
+                };
+
+                group.add(swallow);
+            }
+
+            group.userData = { type: 'swallows', region: 'south' };
+            return group;
+        }
+
+        // 创建牦牛（青藏）
+        function createYak() {
+            const group = new THREE.Group();
+
+            for (let i = 0; i < 5; i++) {
+                const lat = REGION_BOUNDS.tibet.minLat + Math.random() * (REGION_BOUNDS.tibet.maxLat - REGION_BOUNDS.tibet.minLat);
+                const lon = REGION_BOUNDS.tibet.minLon + Math.random() * (REGION_BOUNDS.tibet.maxLon - REGION_BOUNDS.tibet.minLon);
+                const terrainH = getTerrainHeight(lat, lon);
+                const pos = latLonTo3D(lat, lon, terrainH);
+
+                // 简化牦牛形状
+                const bodyGeo = new THREE.BoxGeometry(0.3, 0.2, 0.15);
+                const bodyMat = new THREE.MeshBasicMaterial({ color: 0x2A2520 });
+                const body = new THREE.Mesh(bodyGeo, bodyMat);
+                body.position.copy(pos);
+                body.position.y += 0.15;
+
+                // 头
+                const headGeo = new THREE.BoxGeometry(0.1, 0.12, 0.1);
+                const head = new THREE.Mesh(headGeo, bodyMat);
+                head.position.copy(pos);
+                head.position.x += 0.18;
+                head.position.y += 0.22;
+
+                // 角
+                const hornGeo = new THREE.ConeGeometry(0.015, 0.1, 6);
+                const hornMat = new THREE.MeshBasicMaterial({ color: 0x4A4030 });
+                const horn1 = new THREE.Mesh(hornGeo, hornMat);
+                horn1.position.copy(pos);
+                horn1.position.x += 0.18;
+                horn1.position.y += 0.32;
+                horn1.rotation.z = -0.3;
+                const horn2 = horn1.clone();
+                horn2.rotation.z = 0.3;
+
+                group.add(body);
+                group.add(head);
+                group.add(horn1);
+                group.add(horn2);
+            }
+
+            group.userData = { type: 'yaks', region: 'tibet' };
+            return group;
+        }
+
+        // 创建卷轴边框
+        function createScrollBorder() {
+            const group = new THREE.Group();
+
+            // 地图边界范围
+            const mapWidth = 22;
+            const mapHeight = 16;
+            const borderWidth = 0.8;
+
+            // 上边框（天杆）
+            const topBarGeo = new THREE.BoxGeometry(mapWidth + borderWidth * 2, 0.15, 0.3);
+            const woodMat = new THREE.MeshBasicMaterial({ color: 0x5A4030 });
+            const topBar = new THREE.Mesh(topBarGeo, woodMat);
+            topBar.position.set(0, 0.1, -mapHeight / 2 - borderWidth / 2);
+            group.add(topBar);
+
+            // 下边框（地杆）- 稍粗
+            const bottomBarGeo = new THREE.BoxGeometry(mapWidth + borderWidth * 2, 0.2, 0.35);
+            const bottomBar = new THREE.Mesh(bottomBarGeo, woodMat);
+            bottomBar.position.set(0, 0.1, mapHeight / 2 + borderWidth / 2);
+            group.add(bottomBar);
+
+            // 左边框
+            const leftBarGeo = new THREE.BoxGeometry(borderWidth, 0.12, mapHeight);
+            const leftBar = new THREE.Mesh(leftBarGeo, woodMat);
+            leftBar.position.set(-mapWidth / 2 - borderWidth / 2, 0.06, 0);
+            group.add(leftBar);
+
+            // 右边框
+            const rightBarGeo = new THREE.BoxGeometry(borderWidth, 0.12, mapHeight);
+            const rightBar = new THREE.Mesh(rightBarGeo, woodMat);
+            rightBar.position.set(mapWidth / 2 + borderWidth / 2, 0.06, 0);
+            group.add(rightBar);
+
+            // 四角装饰
+            const cornerSize = 0.4;
+            const corners = [
+                { x: -mapWidth / 2 - borderWidth / 2, z: -mapHeight / 2 - borderWidth / 2 },
+                { x: mapWidth / 2 + borderWidth / 2, z: -mapHeight / 2 - borderWidth / 2 },
+                { x: -mapWidth / 2 - borderWidth / 2, z: mapHeight / 2 + borderWidth / 2 },
+                { x: mapWidth / 2 + borderWidth / 2, z: mapHeight / 2 + borderWidth / 2 }
+            ];
+
+            corners.forEach(pos => {
+                const cornerGeo = new THREE.CylinderGeometry(cornerSize / 2, cornerSize / 2, 0.15, 8);
+                const cornerMat = new THREE.MeshBasicMaterial({ color: 0x4A3020 });
+                const corner = new THREE.Mesh(cornerGeo, cornerMat);
+                corner.position.set(pos.x, 0.08, pos.z);
+                group.add(corner);
+            });
+
+            // 裱边装饰条
+            const innerBorderMat = new THREE.MeshBasicMaterial({ color: 0xC4A97A });
+            const innerBorderWidth = 0.15;
+
+            // 上裱边
+            const topInnerGeo = new THREE.PlaneGeometry(mapWidth, innerBorderWidth);
+            const topInner = new THREE.Mesh(topInnerGeo, innerBorderMat);
+            topInner.rotation.x = -Math.PI / 2;
+            topInner.position.set(0, 0.01, -mapHeight / 2 + innerBorderWidth / 2);
+            group.add(topInner);
+
+            // 下裱边
+            const bottomInnerGeo = new THREE.PlaneGeometry(mapWidth, innerBorderWidth);
+            const bottomInner = new THREE.Mesh(bottomInnerGeo, innerBorderMat);
+            bottomInner.rotation.x = -Math.PI / 2;
+            bottomInner.position.set(0, 0.01, mapHeight / 2 - innerBorderWidth / 2);
+            group.add(bottomInner);
+
+            // 左裱边
+            const leftInnerGeo = new THREE.PlaneGeometry(innerBorderWidth, mapHeight - innerBorderWidth * 2);
+            const leftInner = new THREE.Mesh(leftInnerGeo, innerBorderMat);
+            leftInner.rotation.x = -Math.PI / 2;
+            leftInner.position.set(-mapWidth / 2 + innerBorderWidth / 2, 0.01, 0);
+            group.add(leftInner);
+
+            // 右裱边
+            const rightInnerGeo = new THREE.PlaneGeometry(innerBorderWidth, mapHeight - innerBorderWidth * 2);
+            const rightInner = new THREE.Mesh(rightInnerGeo, innerBorderMat);
+            rightInner.rotation.x = -Math.PI / 2;
+            rightInner.position.set(mapWidth / 2 - innerBorderWidth / 2, 0.01, 0);
+            group.add(rightInner);
+
+            return group;
+        }
+
+        // 初始化所有地区环境特效
+        function initRegionEffects() {
+            const effectsGroup = new THREE.Group();
+
+            // 西北 - 只保留风沙
+            effectsGroup.add(createSandParticles());
+
+            // 东北 - 六边形雪花、针叶林
+            effectsGroup.add(createSnowParticles());
+            effectsGroup.add(createConiferousForest());
+
+            // 江南 - 细雨（更小）、乌篷船
+            effectsGroup.add(createRainParticles());
+            effectsGroup.add(createBoat());
+
+            // 华南 - 燕子（芭蕉已移除）
+            effectsGroup.add(createSwallows());
+
+            // 西南川渝 - 竹林
+            effectsGroup.add(createBamboo());
+
+            // 青藏 - 移除经幡和牦牛
+
+            // 沿海 - 更精致的渔船、海鸥
+            effectsGroup.add(createFishingBoat());
+            effectsGroup.add(createSeagulls());
+
+            scene.add(effectsGroup);
+            regionEffects.group = effectsGroup;
+        }
+
+        // 动画更新环境特效
+        function updateRegionEffects(time, deltaTime) {
+            // 更新卷轴纸的展开动画
+            if (scrollPaperMesh && scrollPaperMesh.material.uniforms) {
+                // 画卷徐徐展开效果（从左到右）
+                // 总展开时间约8秒
+                const scrollDuration = 8.0;
+                let progress = time / scrollDuration;
+
+                // 使用缓动函数让展开更自然
+                if (progress < 1.0) {
+                    // easeOutCubic缓动
+                    progress = 1 - Math.pow(1 - progress, 3);
+                } else {
+                    progress = 1.0;
+                }
+
+                scrollPaperMesh.material.uniforms.uProgress.value = progress;
+
+                // 更新裁剪平面位置（从左到右展开）
+                if (scrollClipPlanes.length === 2) {
+                    const mapWidth = 22;
+                    // 展开平面从左侧(-11)移动到右侧(11)
+                    // 平面方程: -x + d = 0, 即 x = d
+                    const currentPos = -mapWidth/2 + mapWidth * progress;
+                    scrollClipPlanes[0].constant = currentPos;
+                    // 右平面固定在右侧
+                    scrollClipPlanes[1].constant = mapWidth/2;
+                }
+
+            }
+
+            regionEffects.group.children.forEach(effect => {
+                const userData = effect.userData;
+
+                switch (userData.type) {
+                    case 'sand':
+                        // 风沙横向飘动
+                        const sandPositions = effect.geometry.attributes.position.array;
+                        for (let i = 0; i < userData.velocities.length; i++) {
+                            sandPositions[i * 3] += userData.velocities[i].x;
+                            sandPositions[i * 3 + 1] += userData.velocities[i].y;
+                            sandPositions[i * 3 + 2] += userData.velocities[i].z;
+
+                            // 循环重置
+                            if (sandPositions[i * 3] > 10) {
+                                sandPositions[i * 3] = -10;
+                            }
+                        }
+                        effect.geometry.attributes.position.needsUpdate = true;
+                        break;
+
+                    case 'snow':
+                        // 六边形雪花飘落
+                        effect.children.forEach(snowflake => {
+                            snowflake.position.y += snowflake.userData.velocity.y;
+                            snowflake.position.x += snowflake.userData.velocity.x + Math.sin(time + snowflake.id) * 0.001;
+                            snowflake.position.z += snowflake.userData.velocity.z;
+                            snowflake.rotation.z += snowflake.userData.rotSpeed;
+
+                            // 循环重置
+                            const lat = REGION_BOUNDS.northeast.minLat + Math.random() * (REGION_BOUNDS.northeast.maxLat - REGION_BOUNDS.northeast.minLat);
+                            const lon = REGION_BOUNDS.northeast.minLon + Math.random() * (REGION_BOUNDS.northeast.maxLon - REGION_BOUNDS.northeast.minLon);
+                            const terrainH = getTerrainHeight(lat, lon);
+                            const minY = terrainH + 0.3;
+
+                            if (snowflake.position.y < minY) {
+                                snowflake.position.y = minY + 3;
+                            }
+                        });
+                        break;
+
+                    case 'rain':
+                        // 雨丝下落（更小的雨）
+                        const rainPositions = effect.geometry.attributes.position.array;
+                        for (let i = 0; i < rainPositions.length / 6; i++) {
+                            rainPositions[i * 6 + 1] -= 0.08;
+                            rainPositions[i * 6 + 4] -= 0.08;
+
+                            // 循环重置
+                            if (rainPositions[i * 6 + 1] < 0) {
+                                const lat = REGION_BOUNDS.jiangnan.minLat + Math.random() * (REGION_BOUNDS.jiangnan.maxLat - REGION_BOUNDS.jiangnan.minLat);
+                                const lon = REGION_BOUNDS.jiangnan.minLon + Math.random() * (REGION_BOUNDS.jiangnan.maxLon - REGION_BOUNDS.jiangnan.minLon);
+                                const terrainH = getTerrainHeight(lat, lon);
+                                const pos = latLonTo3D(lat, lon, terrainH + 0.8 + Math.random() * 1.5);
+
+                                rainPositions[i * 6] = pos.x;
+                                rainPositions[i * 6 + 1] = pos.y;
+                                rainPositions[i * 6 + 2] = pos.z;
+                                rainPositions[i * 6 + 3] = pos.x + 0.02;
+                                rainPositions[i * 6 + 4] = pos.y - 0.15;
+                                rainPositions[i * 6 + 5] = pos.z;
+                            }
+                        }
+                        effect.geometry.attributes.position.needsUpdate = true;
+                        break;
+
+                    case 'willow':
+                        // 柳枝摆动 - 新的细致柳树结构
+                        effect.children.forEach(tree => {
+                            tree.children.forEach(child => {
+                                if (child.userData.type === 'willowBranch') {
+                                    const sway = Math.sin(time * child.userData.swaySpeed + child.userData.swayOffset) * 0.08;
+                                    child.rotation.z = sway;
+                                    child.rotation.x = sway * 0.5;
+                                }
+                            });
+                        });
+                        break;
+
+                    case 'boat':
+                        // 船浮动 - 更明显
+                        effect.children.forEach(boat => {
+                            boat.position.y = userData.basePosition.y + Math.sin(time * 1.2) * 0.06;
+                            boat.rotation.z = Math.sin(time * 0.8) * 0.08;
+                            boat.rotation.x = Math.sin(time * 1.0) * 0.04;
+                        });
+                        break;
+
+                    case 'seagulls':
+                        // 海鸥飞翔 - 带翅膀扇动
+                        effect.children.forEach(seagull => {
+                            const t = time * seagull.userData.flySpeed + seagull.userData.circleOffset;
+                            // 飞行轨迹
+                            seagull.position.x = seagull.userData.basePosition.x + Math.cos(t) * seagull.userData.flyRadius;
+                            seagull.position.z = seagull.userData.basePosition.z + Math.sin(t * 0.7) * seagull.userData.flyRadius * 0.6;
+                            seagull.position.y = seagull.userData.basePosition.y + Math.sin(t * 1.5) * 0.15;
+                            seagull.rotation.y = -t + Math.PI / 2;
+
+                            // 翅膀扇动
+                            const flapAngle = Math.sin(time * seagull.userData.wingFlapSpeed) * 0.4;
+                            seagull.children.forEach(child => {
+                                if (child.userData.type === 'seagullWing') {
+                                    if (child.userData.side === 'left') {
+                                        child.rotation.z = flapAngle;
+                                    } else {
+                                        child.rotation.z = -flapAngle;
+                                    }
+                                }
+                            });
+                        });
+                        break;
+
+                    case 'swallows':
+                        // 燕子快速飞行（小圆弧）
+                        effect.children.forEach(swallow => {
+                            const t = time * swallow.userData.flySpeed + swallow.userData.circleOffset;
+                            swallow.position.x = swallow.userData.basePosition.x + Math.cos(t) * swallow.userData.circleRadius;
+                            swallow.position.z = swallow.userData.basePosition.z + Math.sin(t * 1.5) * swallow.userData.circleRadius * 0.5;
+                            swallow.position.y = swallow.userData.basePosition.y + Math.sin(t * 3) * 0.15;
+                            swallow.rotation.y = -t;
+                        });
+                        break;
+
+                    case 'geese':
+                        // 大雁缓慢飞行 - 修复
+                        effect.children.forEach(flock => {
+                            flock.position.add(flock.userData.direction.clone().multiplyScalar(flock.userData.flySpeed));
+                            // 轻微上下波动
+                            flock.position.y = flock.userData.initialPos.y + Math.sin(time * 0.5 + flock.position.x) * 0.1;
+                            // 循环
+                            if (flock.position.x > 8) {
+                                flock.position.copy(flock.userData.initialPos);
+                            }
+                        });
+                        break;
+
+                    case 'bamboo':
+                        // 竹叶随风摆动
+                        effect.children.forEach(bambooGroup => {
+                            bambooGroup.children.forEach(part => {
+                                if (part.userData.type === 'bambooLeaf') {
+                                    const sway = Math.sin(time * part.userData.swaySpeed + part.userData.swayOffset) * 0.15;
+                                    part.rotation.z += sway * 0.02;
+                                }
+                            });
+                        });
+                        break;
+
+                    case 'fishingBoatGroup':
+                        // 渔船动态出海
+                        effect.children.forEach(boat => {
+                            const data = boat.userData;
+
+                            // 动态航行逻辑
+                            if (data.progress < 1) {
+                                // 正在出海航行
+                                data.progress += data.sailSpeed;
+
+                                if (data.progress >= 1) {
+                                    data.progress = 1;
+                                    data.waitTime = 0;
+                                }
+
+                                // 线性插值位置
+                                const t = data.progress;
+                                boat.position.x = data.startPos.x + (data.endPos.x - data.startPos.x) * t;
+                                boat.position.z = data.startPos.z + (data.endPos.z - data.startPos.z) * t;
+
+                                // 船头朝向外海
+                                boat.rotation.y = -Math.PI / 2;
+
+                            } else {
+                                // 已经到达外海，等待后返回
+                                data.waitTime += 0.016;
+
+                                if (data.waitTime >= data.maxWaitTime) {
+                                    // 重置到起点重新开始
+                                    data.progress = 0;
+                                    boat.position.copy(data.startPos);
+                                    data.waitTime = 0;
+                                }
+                            }
+
+                            // 波浪晃动效果 - 更明显
+                            const rock = Math.sin(time * data.rockSpeed + data.rockOffset) * 0.08;
+                            boat.rotation.z = rock;
+                            boat.rotation.x = Math.sin(time * data.rockSpeed * 0.7) * 0.05;
+
+                            // 随波浪上下浮动 - 更明显
+                            const waveHeight = Math.sin(time * 2.0 + data.rockOffset) * 0.04;
+                            boat.position.y = data.baseY + waveHeight;
+                        });
+                        break;
+                }
+            });
+        }
+
+        // ==================== 原有地形和地图代码 ====================
+
+        async function loadChinaBoundary() {
+            try {
+                const response = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json');
+                if (!response.ok) throw new Error('Failed to load');
+                return await response.json();
+            } catch (e) {
+                console.warn('使用简化边界');
+                return null;
+            }
+        }
+
+        function pointInPolygon(point, vs) {
+            const x = point[0], y = point[1];
+            let inside = false;
+            for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+                const xi = vs[i][0], yi = vs[i][1];
+                const xj = vs[j][0], yj = vs[j][1];
+                const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        function isInChina(lat, lon, geojson) {
+            if (!geojson || !geojson.features) return true;
+            for (const feature of geojson.features) {
+                if (feature.geometry) {
+                    const coords = feature.geometry.coordinates;
+                    const type = feature.geometry.type;
+                    if (type === 'Polygon') {
+                        for (const ring of coords) {
+                            if (pointInPolygon([lon, lat], ring)) return true;
+                        }
+                    } else if (type === 'MultiPolygon') {
+                        for (const polygon of coords) {
+                            for (const ring of polygon) {
+                                if (pointInPolygon([lon, lat], ring)) return true;
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        function pointToSegmentDistance(lat, lon, lat1, lon1, lat2, lon2) {
+            const A = lat - lat1;
+            const B = lon - lon1;
+            const C = lat2 - lat1;
+            const D = lon2 - lon1;
+            const dot = A * C + B * D;
+            const lenSq = C * C + D * D;
+            let param = -1;
+            if (lenSq !== 0) param = dot / lenSq;
+            let xx, yy;
+            if (param < 0) { xx = lat1; yy = lon1; }
+            else if (param > 1) { xx = lat2; yy = lon2; }
+            else { xx = lat1 + param * C; yy = lon1 + param * D; }
+            const dx = lat - xx;
+            const dy = lon - yy;
+            return Math.sqrt(dx * dx * 111 * 111 + dy * dy * 111 * 111 * Math.cos(lat * Math.PI / 180));
+        }
+
+        // 山脉定义数据
+        const mountainRangesData = [
+            { name: '喜马拉雅', path: [[78.5, 30.5], [80, 29.5], [82, 28.5], [84, 27.5], [86, 27], [88, 27.5]], height: 1.2, width: 2.5 },
+            { name: '昆仑山', path: [[74, 36.5], [78, 36], [82, 35.8], [86, 35.5], [90, 35.2], [94, 35], [98, 35.2]], height: 0.9, width: 2.2 },
+            { name: '天山', path: [[74, 43], [78, 42.5], [82, 42], [86, 41.8], [90, 41.5], [93, 41]], height: 0.8, width: 2.0 },
+            { name: '祁连山', path: [[96, 40], [98, 39], [100, 38], [102, 37]], height: 0.7, width: 1.8 },
+            { name: '秦岭', path: [[104, 34.5], [106, 34], [108, 33.8], [110, 34], [112, 34.2]], height: 0.6, width: 1.7 },
+            { name: '大兴安岭', path: [[116, 52], [118, 51], [120, 50], [122, 49], [124, 48], [125, 47]], height: 0.5, width: 1.8 },
+            { name: '阴山', path: [[106, 41], [109, 41.2], [112, 41], [115, 40.8]], height: 0.4, width: 1.6 },
+            { name: '燕山', path: [[115, 42], [117, 41], [119, 40.5]], height: 0.35, width: 1.5 },
+            { name: '太行山', path: [[112, 38], [113.5, 37.5], [114.5, 37], [115.5, 36.5]], height: 0.5, width: 1.6 },
+            { name: '武夷山', path: [[116, 28], [118, 27.5], [120, 27], [121.5, 26.5]], height: 0.45, width: 1.5 },
+            { name: '南岭', path: [[110, 25.5], [112, 25], [114, 24.5], [116, 24]], height: 0.35, width: 1.6 },
+            { name: '横断山', path: [[98, 30], [99, 29], [100, 28], [101, 27], [102, 26]], height: 0.8, width: 1.8 },
+            { name: '巴颜喀拉山', path: [[96, 35], [98, 34], [100, 33], [102, 32.5]], height: 0.65, width: 1.7 },
+            { name: '唐古拉山', path: [[90, 34], [92, 33.5], [94, 33], [96, 32.5]], height: 0.7, width: 1.8 },
+            { name: '阿尔泰山', path: [[86, 49], [88, 48.5], [90, 48], [92, 47.5]], height: 0.5, width: 1.7 }
+        ];
+
+        function getMountainHeight(lat, lon) {
+            let totalHeight = 0;
+            for (const range of mountainRangesData) {
+                let minDist = Infinity;
+                let closestT = 0;
+                const points = range.path.map(([lon, lat]) => ({lat, lon}));
+                for (let i = 0; i < points.length - 1; i++) {
+                    const p1 = points[i];
+                    const p2 = points[i + 1];
+                    const dist = pointToSegmentDistance(lat, lon, p1.lat, p1.lon, p2.lat, p2.lon);
+                    if (dist < minDist) { minDist = dist; closestT = i / (points.length - 1); }
+                }
+                const mountainWidthKm = range.width * 111;
+                if (minDist < mountainWidthKm) {
+                    const normalizedDist = minDist / mountainWidthKm;
+                    const fold1 = Math.sin(normalizedDist * Math.PI * 3) * 0.3;
+                    const fold2 = Math.sin(normalizedDist * Math.PI * 7) * 0.15;
+                    const fold3 = Math.sin(normalizedDist * Math.PI * 12) * 0.08;
+                    const baseShape = Math.cos(normalizedDist * Math.PI * 0.5);
+                    const lengthVariation = Math.sin(closestT * Math.PI * 4) * 0.2 + Math.sin(closestT * Math.PI * 8) * 0.1;
+                    const heightFactor = Math.max(0, baseShape + fold1 + fold2 + fold3 + lengthVariation);
+                    const mountainH = range.height * heightFactor * Math.pow(1 - normalizedDist * 0.7, 1.5);
+                    totalHeight += Math.max(0, mountainH);
+                }
+            }
+            return totalHeight;
+        }
+
+        // 基础地形高度
+        function getBaseTerrainHeight(lat, lon) {
+            // 青藏高原 - 高原基座
+            if (lat >= 28 && lat <= 38 && lon >= 78 && lon <= 103) {
+                return 0.6 + Math.random() * 0.3;
+            }
+            // 云贵高原
+            if (lat >= 22 && lat <= 29 && lon >= 98 && lon <= 108) {
+                return 0.45 + Math.random() * 0.25;
+            }
+            // 黄土高原
+            if (lat >= 34 && lat <= 40 && lon >= 105 && lon <= 115) {
+                return 0.35 + Math.random() * 0.25;
+            }
+            // 四川盆地
+            if (lat >= 28 && lat <= 32 && lon >= 103 && lon <= 108) {
+                return 0.18 + Math.random() * 0.15;
+            }
+            // 华北平原
+            if (lat >= 34 && lat <= 40 && lon >= 114 && lon <= 120) {
+                return 0.05 + Math.random() * 0.12;
+            }
+            // 长江中下游平原
+            if (lat >= 28 && lat <= 34 && lon >= 114 && lon <= 122) {
+                return 0.03 + Math.random() * 0.1;
+            }
+            // 东北平原
+            if (lat >= 42 && lat <= 48 && lon >= 120 && lon <= 130) {
+                return 0.08 + Math.random() * 0.12;
+            }
+            // 东南丘陵
+            if (lat >= 24 && lat <= 30 && lon >= 110 && lon <= 122) {
+                return 0.22 + Math.random() * 0.2;
+            }
+            // 华南沿海
+            if (lat >= 20 && lat <= 26 && lon >= 108 && lon <= 118) {
+                return 0.05 + Math.random() * 0.12;
+            }
+            // 内蒙古高原
+            if (lat >= 40 && lat <= 48 && lon >= 105 && lon <= 125) {
+                return 0.28 + Math.random() * 0.18;
+            }
+            // 天山山脉
+            if (lat >= 40 && lat <= 45 && lon >= 78 && lon <= 95) {
+                return 0.5 + Math.random() * 0.25;
+            }
+            // 阿尔泰山
+            if (lat >= 46 && lat <= 50 && lon >= 86 && lon <= 92) {
+                return 0.4 + Math.random() * 0.2;
+            }
+            return 0.12 + Math.random() * 0.15;
+        }
+
+        // 获取颜色 - 青绿山水配色（平滑渐变）
+        function getTerrainColor(height, lat, lon) {
+            const colors = {
+                peak: new THREE.Color(0x255358),
+                midHigh: new THREE.Color(0x498EA3),
+                midLow: new THREE.Color(0x6EA798),
+                base: new THREE.Color(0xA6854A),
+                lowland: new THREE.Color(0xC4A97A)
+            };
+
+            function smoothstep(min, max, value) {
+                const x = Math.max(0, Math.min(1, (value - min) / (max - min)));
+                return x * x * (3 - 2 * x);
+            }
+
+            let result = new THREE.Color();
+
+            if (height >= 0.85) {
+                return colors.peak.clone();
+            } else if (height >= 0.6) {
+                const t = smoothstep(0.6, 0.85, height);
+                result.copy(colors.midHigh).lerp(colors.peak, t);
+                return result;
+            } else if (height >= 0.35) {
+                const t = smoothstep(0.35, 0.6, height);
+                result.copy(colors.midLow).lerp(colors.midHigh, t);
+                return result;
+            } else if (height >= 0.12) {
+                const t = smoothstep(0.12, 0.35, height);
+                result.copy(colors.base).lerp(colors.midLow, t);
+                return result;
+            } else {
+                const t = smoothstep(0, 0.12, height);
+                result.copy(colors.lowland).lerp(colors.base, t);
+                return result;
+            }
+        }
+
+        function getTerrainHeight(lat, lon) {
+            const baseHeight = getBaseTerrainHeight(lat, lon);
+            const mountainHeight = getMountainHeight(lat, lon);
+            return baseHeight + mountainHeight;
+        }
+
+        // 为地形添加山脊线和褶皱
+        function addRidgeAndFold(geometry, width, height, geojson) {
+            const positions = geometry.attributes.position;
+            const vertexCount = positions.count;
+            const colors = [];
+
+            for (let i = 0; i < vertexCount; i++) {
+                const x = positions.getX(i);
+                const y = positions.getY(i);
+                const z = positions.getZ(i);
+
+                const { lat, lon } = xyzToLatLon(x, y);
+                const inChina = isInChina(lat, lon, geojson);
+
+                let newZ = z;
+                let color;
+
+                if (inChina) {
+                    // 多层噪声模拟山脊线
+                    const ridgeNoise1 = Math.sin(x * 3.0) * Math.cos(y * 2.5) * 0.06;
+                    const ridgeNoise2 = Math.sin(x * 6.5 + y * 4.8) * 0.03;
+                    const ridgeNoise3 = Math.sin(x * 11.0) * Math.sin(y * 9.5) * 0.015;
+
+                    // 斧劈皴纵向线条
+                    const cunX = x * 3.5;
+                    const cunY = y * 3.5;
+                    const cunNoise = Math.sin(cunX * 2.5 + Math.sin(cunY * 1.8) * 0.4) *
+                                     Math.cos(cunY * 2.0) * 0.05;
+
+                    // 只在山脉区域添加效果
+                    const heightFactor = Math.max(0, Math.min(1, (z - 0.15) * 1.8));
+                    newZ = z + (ridgeNoise1 + ridgeNoise2 + ridgeNoise3 + cunNoise) * heightFactor;
+
+                    // 计算陆地颜色
+                    color = getTerrainColor(newZ, lat, lon);
+                } else {
+                    // 海洋区域 - 标准海洋蓝
+                    newZ = -0.3;
+                    color = new THREE.Color(0x4682B4);
+                }
+
+                positions.setZ(i, newZ);
+                colors.push(color.r, color.g, color.b);
+            }
+
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            geometry.computeVertexNormals();
+
+            return geometry;
+        }
+
+        function createChinaTerrain(geojson) {
+            const width = 280, height = 200;
+            const geometry = new THREE.PlaneGeometry(22, 16, width - 1, height - 1);
+            const positions = geometry.attributes.position;
+
+            // 生成基础高度
+            for (let i = 0; i < positions.count; i++) {
+                const x = positions.getX(i);
+                const y = positions.getY(i);
+                const { lat, lon } = xyzToLatLon(x, y);
+
+                let h;
+                if (isInChina(lat, lon, geojson)) {
+                    h = getTerrainHeight(lat, lon);
+                } else {
+                    h = -0.3;
+                }
+
+                positions.setZ(i, h);
+            }
+
+            // 添加山脊线和皴法效果
+            addRidgeAndFold(geometry, width, height, geojson);
+
+            // 创建带金色轮廓光的材质
+            const material = new THREE.MeshStandardMaterial({
+                vertexColors: true,
+                roughness: 0.7,
+                metalness: 0.25,
+                flatShading: false,
+                side: THREE.DoubleSide,
+                clippingPlanes: scrollClipPlanes,
+                clipIntersection: false
+            });
+
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.rotation.x = -Math.PI / 2;
+            mesh.receiveShadow = true;
+            mesh.castShadow = true;
+
+            return mesh;
+        }
+
+        // 创建古风卷轴纸（铺在地图下方）
+        let scrollPaperMesh;
+        function createScrollPaper() {
+            const width = 24, height = 18;
+            const geometry = new THREE.PlaneGeometry(width, height, 100, 100);
+
+            const vertexShader = `
+                varying vec2 vUv;
+                uniform float uProgress;
+
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `;
+
+            const fragmentShader = `
+                varying vec2 vUv;
+                uniform float uProgress;
+
+                void main() {
+                    // 玻璃质感画纸 - 淡青色透明
+                    vec3 glassColor = vec3(0.88, 0.92, 0.94);
+                    vec3 finalColor = glassColor;
+
+                    // 细微纹理增加玻璃质感
+                    float noise = sin(vUv.x * 100.0) * sin(vUv.y * 100.0) * 0.005;
+                    finalColor += vec3(noise);
+
+                    // 画卷展开效果 - 从左到右缓缓展开
+                    float threshold = uProgress;
+                    float edgeWidth = 0.06;
+
+                    float alpha = 0.35; // 玻璃透明度
+
+                    if (vUv.x > threshold + edgeWidth) {
+                        // 未展开区域（右侧）
+                        alpha = 0.0;
+                    } else if (vUv.x > threshold) {
+                        // 卷边过渡区域
+                        float t = 1.0 - (vUv.x - threshold) / edgeWidth;
+                        alpha = 0.35 * t;
+                    }
+
+                    // 玻璃边缘高光
+                    float edgeFade = 0.05;
+                    float leftEdge = smoothstep(0.0, edgeFade, vUv.x);
+                    float rightEdge = smoothstep(1.0, 1.0 - edgeFade, vUv.x);
+                    float topEdge = smoothstep(0.0, edgeFade, vUv.y);
+                    float bottomEdge = smoothstep(1.0, 1.0 - edgeFade, vUv.y);
+
+                    float edgeFactor = leftEdge * rightEdge * topEdge * bottomEdge;
+                    // 边缘更透明，增加玻璃感
+                    alpha *= mix(0.15, 1.0, edgeFactor);
+
+                    // 边缘高光
+                    float edgeHighlight = (1.0 - edgeFactor) * 0.2;
+                    finalColor += vec3(edgeHighlight);
+
+                    gl_FragColor = vec4(finalColor, alpha);
+                }
+            `;
+
+            const material = new THREE.ShaderMaterial({
+                vertexShader: vertexShader,
+                fragmentShader: fragmentShader,
+                uniforms: {
+                    uProgress: { value: 0 }
+                },
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+
+            scrollPaperMesh = new THREE.Mesh(geometry, material);
+            scrollPaperMesh.rotation.x = -Math.PI / 2;
+            scrollPaperMesh.position.y = -0.1; // 位于地图下方
+
+            return scrollPaperMesh;
+        }
+
+        // 创建卷轴轴杆（天杆和地杆）
+        let leftRodMesh, rightRodMesh;
+        function createScrollRods() {
+            const group = new THREE.Group();
+            const mapWidth = 22;
+            const mapHeight = 16;
+            const rodRadius = 0.25;
+            const rodLength = mapHeight + 2;
+
+            // 木质材质
+            const woodMaterial = new THREE.MeshStandardMaterial({
+                color: 0x5A4030,
+                roughness: 0.6,
+                metalness: 0.1
+            });
+
+            // 轴头材质（深色装饰）
+            const capMaterial = new THREE.MeshStandardMaterial({
+                color: 0x3A2010,
+                roughness: 0.5,
+                metalness: 0.2
+            });
+
+            // 左轴杆
+            const leftRodGeo = new THREE.CylinderGeometry(rodRadius, rodRadius, rodLength, 16);
+            leftRodMesh = new THREE.Mesh(leftRodGeo, woodMaterial);
+            leftRodMesh.rotation.x = Math.PI / 2;
+            leftRodMesh.position.set(-mapWidth / 2 - 0.3, rodRadius, 0);
+            group.add(leftRodMesh);
+
+            // 左轴头（上下装饰）
+            const capGeo = new THREE.CylinderGeometry(rodRadius * 1.3, rodRadius * 1.3, 0.4, 16);
+            const leftTopCap = new THREE.Mesh(capGeo, capMaterial);
+            leftTopCap.rotation.x = Math.PI / 2;
+            leftTopCap.position.set(-mapWidth / 2 - 0.3, rodRadius, -rodLength / 2 + 0.2);
+            group.add(leftTopCap);
+
+            const leftBottomCap = new THREE.Mesh(capGeo, capMaterial);
+            leftBottomCap.rotation.x = Math.PI / 2;
+            leftBottomCap.position.set(-mapWidth / 2 - 0.3, rodRadius, rodLength / 2 - 0.2);
+            group.add(leftBottomCap);
+
+            // 右轴杆
+            const rightRodGeo = new THREE.CylinderGeometry(rodRadius, rodRadius, rodLength, 16);
+            rightRodMesh = new THREE.Mesh(rightRodGeo, woodMaterial);
+            rightRodMesh.rotation.x = Math.PI / 2;
+            rightRodMesh.position.set(mapWidth / 2 + 0.3, rodRadius, 0);
+            group.add(rightRodMesh);
+
+            // 右轴头
+            const rightTopCap = new THREE.Mesh(capGeo, capMaterial);
+            rightTopCap.rotation.x = Math.PI / 2;
+            rightTopCap.position.set(mapWidth / 2 + 0.3, rodRadius, -rodLength / 2 + 0.2);
+            group.add(rightTopCap);
+
+            const rightBottomCap = new THREE.Mesh(capGeo, capMaterial);
+            rightBottomCap.rotation.x = Math.PI / 2;
+            rightBottomCap.position.set(mapWidth / 2 + 0.3, rodRadius, rodLength / 2 - 0.2);
+            group.add(rightBottomCap);
+
+            return group;
+        }
+
+        function createBoundaryLines(geojson) {
+            const group = new THREE.Group();
+            if (!geojson || !geojson.features) return group;
+
+            const material = new THREE.LineBasicMaterial({
+                color: 0x3a5a4a,
+                linewidth: 2,
+                transparent: true,
+                opacity: 0.9,
+                clippingPlanes: scrollClipPlanes,
+                clipIntersection: false
+            });
+
+            geojson.features.forEach(feature => {
+                if (!feature.geometry) return;
+                const coords = feature.geometry.coordinates;
+                const type = feature.geometry.type;
+
+                const processRing = (ring) => {
+                    const points = ring.map(coord => latLonTo3D(coord[1], coord[0], 0.02));
+                    points.push(points[0].clone());
+                    const geo = new THREE.BufferGeometry().setFromPoints(points);
+                    group.add(new THREE.Line(geo, material));
+                };
+
+                if (type === 'Polygon') {
+                    coords.forEach(processRing);
+                } else if (type === 'MultiPolygon') {
+                    coords.forEach(polygon => polygon.forEach(processRing));
+                }
+            });
+
+            return group;
+        }
+
+        function createRivers() {
+            const group = new THREE.Group();
+
+            const yangtzePath = [
+                [90.5, 34.3], [91.5, 33.8], [92.5, 33.2], [93.5, 32.8], [94.5, 32.5],
+                [95.5, 32.0], [96.5, 31.5], [97.5, 31.0], [98.5, 30.5], [99.5, 29.8],
+                [100.5, 29.2], [101.5, 28.5], [102.5, 27.8], [103.5, 27.0], [104.0, 26.5],
+                [104.5, 28.0], [105.0, 28.5], [105.5, 28.8], [106.0, 29.0], [106.5, 29.2],
+                [107.0, 29.5], [107.5, 29.8], [108.0, 30.0], [108.5, 30.2], [109.0, 30.5],
+                [109.5, 30.3], [110.0, 30.2], [110.5, 30.3], [111.0, 30.5], [111.5, 30.4],
+                [112.0, 30.3], [112.5, 30.2], [113.0, 30.0], [113.5, 29.8], [114.0, 29.6],
+                [114.3, 29.5], [114.6, 29.3], [114.9, 29.1], [115.2, 28.9], [115.5, 28.7],
+                [115.8, 28.5], [116.1, 28.3], [116.4, 28.1], [116.7, 27.9], [117.0, 27.8],
+                [117.3, 28.0], [117.6, 28.3], [117.9, 28.6], [118.2, 28.9], [118.5, 29.2],
+                [118.8, 29.5], [119.1, 29.8], [119.4, 30.1], [119.7, 30.4], [120.0, 30.7],
+                [120.3, 31.0], [120.6, 31.3], [120.9, 31.6], [121.2, 31.8], [121.5, 32.0]
+            ];
+
+            const yellowRiverPath = [
+                [96.0, 35.5], [97.0, 35.8], [98.0, 36.0], [99.0, 36.2], [100.0, 36.3],
+                [101.0, 36.2], [102.0, 36.0], [103.0, 35.8], [104.0, 35.6], [104.5, 35.5],
+                [105.0, 36.0], [105.5, 36.3], [106.0, 36.5], [106.5, 36.6], [107.0, 36.5],
+                [107.5, 36.3], [108.0, 36.0], [108.5, 36.2], [109.0, 36.5], [109.5, 36.8],
+                [110.0, 37.0], [110.5, 37.5], [111.0, 38.0], [111.5, 38.5], [112.0, 39.0],
+                [112.3, 39.5], [112.5, 40.0], [112.7, 40.3], [113.0, 40.0], [113.3, 39.5],
+                [113.5, 39.0], [113.8, 38.5], [114.0, 38.0], [114.2, 37.5], [114.5, 37.0],
+                [114.7, 36.8], [115.0, 36.6], [115.3, 36.4], [115.6, 36.2], [115.9, 36.0],
+                [116.2, 35.8], [116.5, 35.6], [116.8, 35.4], [117.1, 35.2], [117.4, 35.0],
+                [117.7, 34.8], [118.0, 34.6], [118.3, 34.5], [118.6, 34.7], [118.9, 35.0],
+                [119.2, 35.3], [119.5, 35.6], [119.8, 36.0], [120.0, 36.3], [120.2, 36.6]
+            ];
+
+            function createRiverMesh(path, baseWidth, isYangtze = false) {
+                const points = [];
+                for (let i = 0; i < path.length; i++) {
+                    const [lon, lat] = path[i];
+                    const h = getTerrainHeight(lat, lon);
+                    points.push(latLonTo3D(lat, lon, h + 0.03));
+                }
+
+                const curve = new THREE.CatmullRomCurve3(points);
+                curve.curveType = 'catmullrom';
+                curve.tension = 0.3;
+
+                const tubularSegments = 200;
+                const radialSegments = 8;
+                const geometry = new THREE.BufferGeometry();
+
+                const vertices = [];
+                const uvs = [];
+                const indices = [];
+
+                const frames = curve.computeFrenetFrames(tubularSegments, false);
+
+                for (let i = 0; i <= tubularSegments; i++) {
+                    const t = i / tubularSegments;
+                    const point = curve.getPointAt(t);
+                    const N = frames.normals[i];
+                    const B = frames.binormals[i];
+
+                    const widthProgress = isYangtze ?
+                        (t < 0.3 ? 0.4 + t * 0.5 : 0.55 + t * 0.8) :
+                        (t < 0.2 ? 0.35 + t * 0.4 : 0.43 + t * 0.7);
+
+                    const width = baseWidth * widthProgress;
+
+                    for (let j = 0; j <= radialSegments; j++) {
+                        const v = j / radialSegments;
+                        const sin = Math.sin(v * Math.PI);
+                        const cos = Math.cos(v * Math.PI);
+
+                        const px = point.x + cos * width * N.x + sin * width * B.x * 0.3;
+                        const py = point.y + cos * width * N.y + sin * width * B.y * 0.3;
+                        const pz = point.z + cos * width * N.z + sin * width * B.z * 0.3;
+
+                        vertices.push(px, py, pz);
+                        uvs.push(t * 4, v);
+                    }
+                }
+
+                for (let i = 0; i < tubularSegments; i++) {
+                    for (let j = 0; j < radialSegments; j++) {
+                        const a = i * (radialSegments + 1) + j;
+                        const b = (i + 1) * (radialSegments + 1) + j;
+                        const c = (i + 1) * (radialSegments + 1) + (j + 1);
+                        const d = i * (radialSegments + 1) + (j + 1);
+
+                        indices.push(a, b, d);
+                        indices.push(b, c, d);
+                    }
+                }
+
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+                geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+                geometry.setIndex(indices);
+                geometry.computeVertexNormals();
+
+                const material = new THREE.MeshPhongMaterial({
+                    color: isYangtze ? 0x1a3a5a : 0x2a4a5a,
+                    emissive: isYangtze ? 0x0a1a2a : 0x0a2a3a,
+                    emissiveIntensity: 0.4,
+                    transparent: true,
+                    opacity: 0.9,
+                    side: THREE.DoubleSide,
+                    shininess: 100,
+                    clippingPlanes: scrollClipPlanes,
+                    clipIntersection: false
+                });
+
+                return new THREE.Mesh(geometry, material);
+            }
+
+            group.add(createRiverMesh(yangtzePath, 0.15, true));
+            group.add(createRiverMesh(yellowRiverPath, 0.12, false));
+
+            return group;
+        }
+
+        function createCityMarkers() {
+            const group = new THREE.Group();
+
+            Object.entries(citiesData).forEach(([name, data]) => {
+                const terrainH = getTerrainHeight(data.lat, data.lon);
+                const pos = latLonTo3D(data.lat, data.lon, terrainH + 0.15);
+
+                let color = 0xB8956B;
+                if (data.type === 'capital') color = 0xC4A35A;
+                else if (data.type === 'jiangnan') color = 0x7A8B6E;
+                else if (data.type === 'south') color = 0x5A7A8A;
+
+                const cityGroup = new THREE.Group();
+                cityGroup.position.copy(pos);
+                cityGroup.userData = { cityName: name, cityData: data };
+
+                const body = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.12, 16, 16),
+                    new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 0.3, clippingPlanes: scrollClipPlanes, clipIntersection: false })
+                );
+                cityGroup.add(body);
+
+                const ring = new THREE.Mesh(
+                    new THREE.RingGeometry(0.18, 0.22, 32),
+                    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5, side: THREE.DoubleSide, clippingPlanes: scrollClipPlanes, clipIntersection: false })
+                );
+                ring.rotation.x = -Math.PI / 2;
+                ring.position.y = -0.05;
+                cityGroup.add(ring);
+
+                const pulse = new THREE.Mesh(
+                    new THREE.RingGeometry(0.28, 0.32, 32),
+                    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.3, side: THREE.DoubleSide, clippingPlanes: scrollClipPlanes, clipIntersection: false })
+                );
+                pulse.rotation.x = -Math.PI / 2;
+                pulse.position.y = -0.05;
+                pulse.userData = { isPulse: true };
+                cityGroup.add(pulse);
+
+                // 创建古风竖排标签
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'city-label';
+                labelDiv.dataset.cityName = name;
+
+                const labelContent = document.createElement('div');
+                labelContent.className = 'city-label-content';
+                if (data.type === 'capital') labelContent.classList.add('capital');
+                else if (data.type === 'jiangnan') labelContent.classList.add('jiangnan');
+                else if (data.type === 'south') labelContent.classList.add('south');
+                labelContent.textContent = name;
+
+                labelDiv.appendChild(labelContent);
+
+                const label = new CSS2DObject(labelDiv);
+                label.position.set(0, 0.6, 0);
+                cityGroup.add(label);
+
+                group.add(cityGroup);
+                cityMarkers.push(cityGroup);
+            });
+
+            return group;
+        }
+            function focusOnCity(cityGroup) {
+                const targetPos = cityGroup.position.clone();
+                const offset = new THREE.Vector3(0, 4, 4); // 相机偏移位置（上方）
+                const newCameraPos = targetPos.clone().add(offset);
+                
+                // 平滑移动相机
+                const duration = 800; // 动画时长ms
+                const startPos = camera.position.clone();
+                const startTarget = controls.target.clone();
+                const startTime = Date.now();
+                
+                function animateCamera() {
+                    const elapsed = Date.now() - startTime;
+                    const t = Math.min(elapsed / duration, 1);
+                    // 使用缓动函数
+                    const easeT = 1 - Math.pow(1 - t, 3);
+                    
+                    camera.position.lerpVectors(startPos, newCameraPos, easeT);
+                    controls.target.lerpVectors(startTarget, targetPos, easeT);
+                    controls.update();
+                    
+                    if (t < 1) {
+                        requestAnimationFrame(animateCamera);
+                    }
+                }
+                animateCamera();
+            }
+
+
+        function showCityPopup(cityName, cityData, screenPos) {
+            selectedCity = cityName;
+            const popup = document.getElementById('city-popup');
+            document.getElementById('popup-city-name').textContent = cityName;
+
+            const list = document.getElementById('popup-food-list');
+            list.innerHTML = '';
+
+            cityData.foods.forEach(food => {
+                const li = document.createElement('li');
+                li.className = 'food-item';
+                li.innerHTML = `
+                    <div class="food-icon">${food.icon}</div>
+                    <div class="food-info">
+                        <h4>${food.name}</h4>
+                        <p>${food.desc}</p>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+
+            popup.classList.add('active');
+            popup.style.left = Math.min(Math.max(screenPos.x + 20, 20), window.innerWidth - 420) + 'px';
+            popup.style.top = Math.min(Math.max(screenPos.y - 100, 20), window.innerHeight - 300) + 'px';
+        }
+
+        function closePopup() {
+            document.getElementById('city-popup').classList.remove('active');
+            selectedCity = null;
+        }
+
+        async function init() {
+            updateLoading(10);
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xd4c5a0);
+            scene.fog = new THREE.FogExp2(0xd8c9a5, 0.03);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 9, 12);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // 创建 CSS2DRenderer
+            css2dRenderer = new CSS2DRenderer();
+            css2dRenderer.setSize(window.innerWidth, window.innerHeight);
+            css2dRenderer.domElement.style.position = 'absolute';
+            css2dRenderer.domElement.style.top = '0';
+            css2dRenderer.domElement.style.pointerEvents = 'none';
+            document.getElementById('canvas-container').appendChild(css2dRenderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 8;
+            controls.maxDistance = 25;
+            controls.maxPolarAngle = Math.PI / 2.1;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.15;
+
+            updateLoading(25);
+
+            // 环境光
+            scene.add(new THREE.AmbientLight(0xa0c0b0, 0.5));
+
+            // 主光源
+            const dirLight = new THREE.DirectionalLight(0xfff0d0, 0.8);
+            dirLight.position.set(8, 12, 8);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            // 补光
+            scene.add(new THREE.DirectionalLight(0xc0d0d0, 0.3).position.set(-8, 6, -5));
+
+            // 添加轮廓光（背光金色）
+            const rimLight = new THREE.DirectionalLight(GOLD_COLORS.rim, 0.4);
+            rimLight.position.set(-5, 8, -10);
+            scene.add(rimLight);
+
+            updateLoading(40);
+
+            // 创建卷轴裁剪平面（从左到右展开）
+            // 平面方程: ax + by + cz + d = 0
+            // 展开平面: 法向量向左 (-1, 0, 0)，从左侧开始向右移动
+            // 初始在最左侧(-11)，随展开向右移动，显示左侧区域
+            const unfoldClipPlane = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 11);
+            // 右侧裁剪平面: 法向量向右 (1, 0, 0)，固定在最右侧，裁剪掉外部
+            const rightClipPlane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 11);
+            scrollClipPlanes = [unfoldClipPlane, rightClipPlane];
+            renderer.localClippingEnabled = true;
+
+            const geojson = await loadChinaBoundary();
+
+            updateLoading(60);
+
+            // 创建地形
+            terrainMesh = createChinaTerrain(geojson);
+            scene.add(terrainMesh);
+
+            updateLoading(75);
+
+            if (geojson) {
+                scene.add(createBoundaryLines(geojson));
+            }
+
+            // 先添加古风卷轴纸（在地图下方）
+            scene.add(createScrollPaper());
+
+            // 卷轴轴杆已移除，只保留画纸
+
+            scene.add(createRivers());
+            scene.add(createCityMarkers());
+
+            // 添加卷轴边框
+            // 卷轴边框已移除
+
+            // 初始化地区环境特效
+            initRegionEffects();
+
+            updateLoading(100);
+            initDynastyFilter();
+
+            setTimeout(() => {
+                document.getElementById('loading').classList.add('hidden');
+            }, 500);
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                css2dRenderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            renderer.domElement.addEventListener('click', (e) => {
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+
+                const meshes = [];
+                cityMarkers.forEach(g => {
+                    g.children.forEach(c => {
+                        if (c.geometry?.type === 'SphereGeometry') {
+                            c.userData.parentGroup = g;
+                            meshes.push(c);
+                        }
+                    });
+                });
+
+                const intersects = raycaster.intersectObjects(meshes);
+                if (intersects.length > 0) {
+                    const g = intersects[0].object.userData.parentGroup;
+                    controls.autoRotate = false;
+                    focusOnCity(g);
+                    showCityPopup(g.userData.cityName, g.userData.cityData, { x: e.clientX, y: e.clientY });
+                } else {
+                    closePopup();
+                    controls.autoRotate = true;
+                }
+            });
+
+            renderer.domElement.addEventListener('mousemove', (e) => {
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+
+                const meshes = [];
+                cityMarkers.forEach(g => {
+                    g.children.forEach(c => {
+                        if (c.geometry?.type === 'SphereGeometry') meshes.push(c);
+                    });
+                });
+
+                document.body.style.cursor = raycaster.intersectObjects(meshes).length > 0 ? 'pointer' : 'default';
+            });
+
+            let lastTime = 0;
+            // 初始化朝代筛选
+            function initDynastyFilter() {
+                const buttons = document.querySelectorAll(".filter-btn");
+                buttons.forEach(btn => {
+                    btn.addEventListener("click", () => {
+                        buttons.forEach(b => b.classList.remove("active"));
+                        btn.classList.add("active");
+                        const dynasty = btn.dataset.dynasty;
+                        filterCitiesByDynasty(dynasty);
+                    });
+                });
+            }
+
+            // 根据朝代筛选城市
+            function filterCitiesByDynasty(dynasty) {
+                const allLabels = document.querySelectorAll(".city-label");
+
+                cityMarkers.forEach(marker => {
+                    const cityName = marker.userData.cityName;
+                    const cityData = marker.userData.cityData;
+                    if (!cityData || !cityData.foods) return;
+
+                    const hasFood = cityData.foods.some(food => {
+                        const match = food.desc.match(/朝代：([^\n]+)/);
+                        if (!match) return false;
+                        const foodDynasty = match[1].trim();
+                        if (dynasty === "all") return true;
+                        if (dynasty === "宋") return foodDynasty.includes("宋");
+                        return foodDynasty === dynasty || foodDynasty.includes(dynasty);
+                    });
+
+                    marker.visible = hasFood;
+
+                    allLabels.forEach(label => {
+                        if (label.dataset.cityName === cityName) {
+                            label.style.display = hasFood ? "" : "none";
+                        }
+                    });
+                });
+            }
+            function animate(time) {
+                requestAnimationFrame(animate);
+
+                const deltaTime = (time - lastTime) * 0.001 || 0.016;
+                lastTime = time;
+                const elapsedTime = clock.getElapsedTime();
+
+                // 城市脉冲动画
+                cityMarkers.forEach((g, i) => {
+                    g.children.forEach(c => {
+                        if (c.userData.isPulse) {
+                            c.scale.setScalar(1 + Math.sin(elapsedTime * 2 + i * 0.5) * 0.15);
+                            c.material.opacity = 0.3 - Math.sin(elapsedTime * 2 + i * 0.5) * 0.1;
+                        }
+                    });
+                });
+
+                // 更新地区环境特效
+                updateRegionEffects(elapsedTime, deltaTime);
+
+                controls.update();
+                renderer.render(scene, camera);
+                css2dRenderer.render(scene, camera);
+            }
+            animate(0);
+        }
+
+        init();
+        window.closePopup = closePopup;
+    </script>
+</body>
+</html>
